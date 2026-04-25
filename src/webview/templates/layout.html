@@ -1,0 +1,83 @@
+<div class="container">
+  <h1>🤖 AgentKit Manager</h1>
+  <p class="subtitle">Install and manage AI agents for your development workflow</p>
+
+  <!-- Step 1: Select Tool -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">Select AI Tool</div>
+    </div>
+    <div class="tool-grid" id="toolGrid"></div>
+  </div>
+
+  <!-- Step 2: Select Model (Claude Code only) -->
+  <div class="step" id="modelStep" style="display: none;">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">Select Model</div>
+    </div>
+    <div class="model-grid" id="modelGrid"></div>
+  </div>
+
+  <!-- Step 3: Select Departments -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">Select Departments</div>
+    </div>
+    <div class="department-grid" id="departmentGrid"></div>
+  </div>
+
+  <!-- Step 4: Select Agents -->
+  <div class="step" id="agentsStep" style="display: none;">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">Select Agents</div>
+    </div>
+    <div id="agentsList"></div>
+  </div>
+
+  <!-- Step 5: Custom Folder (Optional) -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <div class="step-title">Folder Name (Optional)</div>
+    </div>
+    <input type="text" id="folderInput" placeholder="Leave empty for default">
+    <div class="info-box">
+      Default folders: <strong>.cursorrules</strong> (Cursor), <strong>.claude/agents</strong> (Claude Code),
+      <strong>.github</strong> (Copilot), <strong>.aider</strong> (Aider), <strong>.ai</strong> (Universal)
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary" id="summary" style="display: none;">
+    <div class="summary-item">
+      <span class="summary-label">Tool:</span>
+      <span class="summary-value" id="summaryTool">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Folder:</span>
+      <span class="summary-value" id="summaryFolder">-</span>
+    </div>
+    <div class="summary-item" id="summaryModelItem" style="display: none;">
+      <span class="summary-label">Model:</span>
+      <span class="summary-value" id="summaryModel">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Departments:</span>
+      <span class="summary-value" id="summaryDepts">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Agents:</span>
+      <span class="summary-value" id="summaryAgents">-</span>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="button-group">
+    <button id="installBtn" disabled>Install Agents</button>
+    <button class="secondary" id="cancelBtn">Cancel</button>
+  </div>
+</div>
