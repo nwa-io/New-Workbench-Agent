@@ -10,7 +10,7 @@ export async function removeAgentsCommand(): Promise<void> {
   try {
     const workspaceFolder = await fileSystemService.getWorkspaceFolder();
     if (!workspaceFolder) {
-      vscode.window.showErrorMessage('AgentKit: Please open a workspace folder first');
+      vscode.window.showErrorMessage('Please open a workspace folder first');
       return;
     }
 

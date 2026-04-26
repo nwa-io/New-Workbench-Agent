@@ -13,7 +13,7 @@ export async function quickInitCommand(context: vscode.ExtensionContext): Promis
   try {
     const workspaceFolder = await fileSystemService.getWorkspaceFolder();
     if (!workspaceFolder) {
-      vscode.window.showErrorMessage('AgentKit: Please open a workspace folder first');
+      vscode.window.showErrorMessage('Please open a workspace folder first');
       return;
     }
 
