@@ -3,7 +3,13 @@ import { ConfigService } from '../services/ConfigService';
 import { FileSystemService } from '../services/FileSystemService';
 import { TaskManagerService } from '../services/TaskManagerService';
 import { logger } from '../utils/logger';
-import { TaskDocumentUpload, TaskManagerMode } from '../models/TaskManager';
+import {
+  TaskDocumentUpload,
+  TaskFigmaSyncRequest,
+  TaskJiraOpenRequest,
+  TaskJiraReadRequest,
+  TaskManagerMode
+} from '../models/TaskManager';
 import { getTaskManagerContent } from './taskManagerContent';
 
 export class TaskManagerPanel {
@@ -16,7 +22,8 @@ export class TaskManagerPanel {
   public static createOrShow(
     extensionUri: vscode.Uri,
     configService?: ConfigService,
-    mode: TaskManagerMode = 'task'
+    mode: TaskManagerMode = 'task',
+    storageUri?: vscode.Uri
   ): void {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
@@ -38,13 +45,18 @@ export class TaskManagerPanel {
       }
     );
 
-    TaskManagerPanel.currentPanel = new TaskManagerPanel(panel, configService, mode);
+    TaskManagerPanel.currentPanel = new TaskManagerPanel(panel, configService, mode, storageUri);
   }
 
-  private constructor(panel: vscode.WebviewPanel, configService?: ConfigService, mode: TaskManagerMode = 'task') {
+  private constructor(
+    panel: vscode.WebviewPanel,
+    configService?: ConfigService,
+    mode: TaskManagerMode = 'task',
+    storageUri?: vscode.Uri
+  ) {
     this._panel = panel;
     this.mode = mode;
-    this.taskManagerService = new TaskManagerService(configService, new FileSystemService());
+    this.taskManagerService = new TaskManagerService(configService, new FileSystemService(), storageUri);
 
     this._panel.webview.html = getTaskManagerContent(this.mode);
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -60,6 +72,15 @@ export class TaskManagerPanel {
             break;
           case 'uploadTaskDocument':
             await this.handleUploadTaskDocument(message.data);
+            break;
+          case 'syncFigmaTaskLink':
+            await this.handleSyncFigmaTaskLink(message.data);
+            break;
+          case 'openJiraInChrome':
+            await this.handleOpenJiraInChrome(message.data);
+            break;
+          case 'readJiraTicket':
+            await this.handleReadJiraTicket(message.data);
             break;
           case 'openTaskDocument':
             await this.handleOpenTaskDocument(message.data?.workspacePath);
@@ -148,6 +169,125 @@ export class TaskManagerPanel {
         data: { message: (error as Error).message }
       });
       vscode.window.showErrorMessage(`Task document import failed: ${(error as Error).message}`);
+    }
+  }
+
+  private async handleSyncFigmaTaskLink(request?: TaskFigmaSyncRequest): Promise<void> {
+    if (!request) {
+      return;
+    }
+
+    try {
+      const result = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: 'Syncing Figma link',
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ increment: 0, message: 'Connecting to Figma...' });
+          const syncResult = await this.taskManagerService.syncFigmaLink({
+            ...request,
+            mode: request.mode || this.mode
+          });
+          progress.report({ increment: 100 });
+          return syncResult;
+        }
+      );
+
+      this.mode = result.state.mode;
+      this._panel.webview.postMessage({
+        command: 'figmaTaskLinkSyncComplete',
+        data: result
+      });
+      vscode.window.showInformationMessage(`Connected Figma file: ${result.connection.fileName}`);
+    } catch (error) {
+      logger.error('Error syncing Figma link', error as Error);
+      this._panel.webview.postMessage({
+        command: 'figmaTaskLinkSyncFailed',
+        data: { message: (error as Error).message }
+      });
+      vscode.window.showErrorMessage(`Figma sync failed: ${(error as Error).message}`);
+    }
+  }
+
+  private async handleOpenJiraInChrome(request?: TaskJiraOpenRequest): Promise<void> {
+    if (!request) {
+      return;
+    }
+
+    try {
+      const result = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: 'Opening Jira in Chrome',
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ increment: 0, message: 'Starting Playwright Chrome...' });
+          const openResult = await this.taskManagerService.openJiraInChrome({
+            ...request,
+            mode: request.mode || this.mode
+          });
+          progress.report({ increment: 100 });
+          return openResult;
+        }
+      );
+
+      this.mode = result.state.mode;
+      this._panel.webview.postMessage({
+        command: 'jiraOpenComplete',
+        data: result
+      });
+      vscode.window.showInformationMessage('Jira opened in Playwright Chrome. Log in there if needed.');
+    } catch (error) {
+      logger.error('Error opening Jira in Chrome', error as Error);
+      this._panel.webview.postMessage({
+        command: 'jiraOpenFailed',
+        data: { message: (error as Error).message }
+      });
+      vscode.window.showErrorMessage(`Jira open failed: ${(error as Error).message}`);
+    }
+  }
+
+  private async handleReadJiraTicket(request?: TaskJiraReadRequest): Promise<void> {
+    if (!request) {
+      return;
+    }
+
+    try {
+      const result = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: 'Reading Jira ticket',
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ increment: 0, message: 'Reading Jira page content...' });
+          const readResult = await this.taskManagerService.readJiraTicket({
+            ...request,
+            mode: request.mode || this.mode
+          });
+          progress.report({ increment: 100 });
+          return readResult;
+        }
+      );
+
+      this.mode = result.state.mode;
+      this._panel.webview.postMessage({
+        command: 'jiraReadComplete',
+        data: result
+      });
+      vscode.window.showInformationMessage(
+        `Read Jira ticket and closed Chrome: ${result.connection.ticket?.title || result.connection.link}`
+      );
+    } catch (error) {
+      logger.error('Error reading Jira ticket', error as Error);
+      this._panel.webview.postMessage({
+        command: 'jiraReadFailed',
+        data: { message: (error as Error).message }
+      });
+      vscode.window.showErrorMessage(`Jira read failed: ${(error as Error).message}`);
     }
   }
 

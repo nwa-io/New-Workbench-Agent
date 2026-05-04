@@ -403,6 +403,331 @@ h2 {
   margin-bottom: 6px;
 }
 
+.jira-flow-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.jira-flow-section:last-child {
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.jira-flow-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.jira-flow-heading h3 {
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.jira-flow-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+
+.jira-flow-list li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 34px;
+  color: var(--vscode-foreground);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.jira-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--vscode-badge-foreground);
+  background: var(--vscode-badge-background);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.jira-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.jira-sync-status {
+  min-height: 20px;
+  margin-bottom: 12px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.jira-sync-status.error {
+  color: var(--vscode-errorForeground);
+}
+
+.jira-ticket-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.jira-ticket-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.jira-ticket-heading h3 {
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+}
+
+.jira-ticket-heading span {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  text-align: right;
+}
+
+.jira-ticket-summary {
+  margin-bottom: 10px;
+}
+
+.jira-ticket-title {
+  overflow: hidden;
+  margin-bottom: 4px;
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jira-ticket-content {
+  max-height: 360px;
+  overflow: auto;
+  padding: 10px;
+  color: var(--vscode-editor-foreground);
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.figma-tabs {
+  display: inline-flex;
+  width: 100%;
+  padding: 2px;
+  margin-bottom: 16px;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 6px;
+}
+
+.figma-tab {
+  flex: 1;
+  background: transparent;
+  color: var(--vscode-foreground);
+}
+
+.figma-tab.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.figma-panel {
+  display: block;
+}
+
+.figma-panel[hidden] {
+  display: none;
+}
+
+.form-field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.form-field span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form-field input {
+  width: 100%;
+  padding: 10px 11px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.form-field input:focus {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.form-field input.attention {
+  border-color: var(--vscode-inputValidation-warningBorder);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.28);
+}
+
+.figma-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.figma-sync-status {
+  min-height: 20px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.figma-sync-status.error {
+  color: var(--vscode-errorForeground);
+}
+
+.figma-connection-summary {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.figma-connection-title {
+  margin-bottom: 5px;
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.figma-node-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.figma-node-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.figma-node-heading h3 {
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+}
+
+.figma-node-heading span {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.figma-node-list {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+}
+
+.figma-node-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 10px 9px calc(10px + (var(--depth) * 12px));
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.figma-node-item:last-child {
+  border-bottom: none;
+}
+
+.figma-node-item.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.figma-node-main {
+  min-width: 0;
+}
+
+.figma-node-name {
+  overflow: hidden;
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.figma-node-item.selected .figma-node-name {
+  color: inherit;
+}
+
+.figma-node-path {
+  overflow: hidden;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.figma-node-item.selected .figma-node-path {
+  color: inherit;
+  opacity: 0.78;
+}
+
+.figma-node-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 92px;
+}
+
+.figma-node-meta span {
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.figma-node-meta code {
+  color: var(--vscode-textPreformat-foreground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 10px;
+}
+
+.figma-node-item.selected .figma-node-meta span,
+.figma-node-item.selected .figma-node-meta code {
+  color: inherit;
+}
+
 .drop-zone {
   display: flex;
   min-height: 180px;

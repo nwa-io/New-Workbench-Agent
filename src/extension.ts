@@ -116,13 +116,13 @@ function registerCommands(
     // Open Task Manager
     vscode.commands.registerCommand(COMMANDS.OPEN_TASK_MANAGER, () => {
       logger.info('Opening Task Manager');
-      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'task');
+      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'task', context.globalStorageUri);
     }),
 
     // Open Fix Bug Manager
     vscode.commands.registerCommand(COMMANDS.OPEN_FIX_BUG_MANAGER, () => {
       logger.info('Opening Fix Bug Manager');
-      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'fix-bug');
+      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'fix-bug', context.globalStorageUri);
     }),
 
     // Refresh Agents
