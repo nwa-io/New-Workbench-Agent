@@ -10,8 +10,10 @@ import { toggleFavoriteCommand } from './commands/toggleFavorite';
 import { initClaudeResourceCommand } from './commands/initClaudeResource';
 import { initClaudeEnvironmentCommand } from './commands/initClaudeEnvironment';
 import { openObsidianGraphCommand } from './commands/openObsidianGraph';
+import { TaskManagerPanel } from './webview/TaskManagerPanel';
 import { InstalledAgentsProvider } from './providers/InstalledAgentsProvider';
 import { AvailableAgentsProvider } from './providers/AvailableAgentsProvider';
+import { TaskActionsProvider } from './providers/TaskActionsProvider';
 import { ConfigService } from './services/ConfigService';
 import { FileSystemService } from './services/FileSystemService';
 import { logger } from './utils/logger';
@@ -33,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
   const installedAgentsProvider = new InstalledAgentsProvider();
   const availableAgentsProvider = new AvailableAgentsProvider(configService);
   const claudeContextProvider = new ClaudeContextProvider();
+  const taskActionsProvider = new TaskActionsProvider();
 
   const installedTreeView = vscode.window.createTreeView(TREE_VIEW_IDS.INSTALLED, {
     treeDataProvider: installedAgentsProvider,
@@ -47,8 +50,12 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: claudeContextProvider,
     showCollapseAll: true,
   });
+  const taskTreeView = vscode.window.createTreeView(TREE_VIEW_IDS.TASK, {
+    treeDataProvider: taskActionsProvider,
+    showCollapseAll: false,
+  });
 
-  context.subscriptions.push(installedTreeView, availableTreeView, claudeContextTreeView);
+  context.subscriptions.push(installedTreeView, availableTreeView, claudeContextTreeView, taskTreeView);
 
   // Register commands
   registerCommands(context, installedAgentsProvider, availableAgentsProvider, fileSystemService, configService);
@@ -104,6 +111,18 @@ function registerCommands(
     vscode.commands.registerCommand(COMMANDS.GRAPH_OBSIDIAN, async () => {
       logger.info('Opening Graph Obsidian');
       await openObsidianGraphCommand(context.extensionUri);
+    }),
+
+    // Open Task Manager
+    vscode.commands.registerCommand(COMMANDS.OPEN_TASK_MANAGER, () => {
+      logger.info('Opening Task Manager');
+      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'task');
+    }),
+
+    // Open Fix Bug Manager
+    vscode.commands.registerCommand(COMMANDS.OPEN_FIX_BUG_MANAGER, () => {
+      logger.info('Opening Fix Bug Manager');
+      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'fix-bug');
     }),
 
     // Refresh Agents

@@ -232,10 +232,11 @@ try {
 
   Write-Host ''
   Write-Host '== Install markitdown =='
-  & $pip.Command @($pip.Arguments + @('install', 'markitdown'))
+  $markitdownPackage = 'markitdown[pdf,docx,pptx,xls,xlsx]'
+  & $pip.Command @($pip.Arguments + @('install', $markitdownPackage))
   if ($LASTEXITCODE -ne 0) {
     Write-Host 'pip install markitdown failed. Retrying with --user...'
-    Invoke-AgentKitCommand 'Install markitdown with --user' $pip.Command ($pip.Arguments + @('install', '--user', 'markitdown'))
+    Invoke-AgentKitCommand 'Install markitdown with --user' $pip.Command ($pip.Arguments + @('install', '--user', $markitdownPackage))
   }
 
   Invoke-AgentKitCommand 'Verify markitdown' $python.Command ($python.Arguments + @('-m', 'markitdown', '--help'))
@@ -361,9 +362,10 @@ echo "Using pip command: $PIP_CMD $PIP_ARGS"
 
 echo
 echo "== Install markitdown =="
-if ! $PIP_CMD $PIP_ARGS install markitdown; then
+MARKITDOWN_PACKAGE='markitdown[pdf,docx,pptx,xls,xlsx]'
+if ! $PIP_CMD $PIP_ARGS install "$MARKITDOWN_PACKAGE"; then
   echo "pip install markitdown failed. Retrying with --user..."
-  run_required "Install markitdown with --user" $PIP_CMD $PIP_ARGS install --user markitdown
+  run_required "Install markitdown with --user" $PIP_CMD $PIP_ARGS install --user "$MARKITDOWN_PACKAGE"
 fi
 
 run_required "Verify markitdown" "$PYTHON_CMD" -m markitdown --help

@@ -34,6 +34,10 @@ export class ConfigService {
     return this.config.get<string[]>(CONFIG_KEYS.DEFAULT_DEPARTMENTS, ['engineering', 'design']);
   }
 
+  getTaskDocumentsFolder(): string {
+    return this.config.get<string>(CONFIG_KEYS.TASK_DOCUMENTS_FOLDER, '.claude/docs');
+  }
+
   async setDefaultTool(tool: ToolType): Promise<void> {
     await this.config.update(
       CONFIG_KEYS.DEFAULT_TOOL,
