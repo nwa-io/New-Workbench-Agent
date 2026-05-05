@@ -1,0 +1,374 @@
+{
+  "name": "agentkit-vscode",
+  "displayName": "AgentKit - AI Agent Generator for Code Editors",
+  "description": "Visual interface to generate and manage AI agents for Visual Studio Code, Claude Code, Cursor, GitHub Copilot, and more. Setup AI agents with a beautiful GUI.",
+  "version": "0.3.0",
+  "publisher": "patricio0312rev",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "icon": "icon.png",
+  "categories": [
+    "Other",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "ai",
+    "agents",
+    "claude",
+    "cursor",
+    "copilot",
+    "claude-code",
+    "ai-agents",
+    "agentkit",
+    "productivity",
+    "automation",
+    "sub-agents",
+    "ai-tools"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentkit.openPanel",
+        "title": "AgentKit: Open Agent Manager",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "agentkit.quickInit",
+        "title": "AgentKit: Quick Setup",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "agentkit.initAgents",
+        "title": "AgentKit: Initialize Agents"
+      },
+      {
+        "command": "agentkit.initClaudeResource",
+        "title": "AgentKit: Init Resource Claude",
+        "icon": "$(add)"
+      },
+      {
+        "command": "agentkit.initClaudeEnvironment",
+        "title": "Init env",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "agentkit.graphObsidian",
+        "title": "Graph Obsidian",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "agentkit.openTaskManager",
+        "title": "AgentKit: Task",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "agentkit.openFixBugManager",
+        "title": "AgentKit: Fix Bug",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "agentkit.refreshAgents",
+        "title": "AgentKit: Refresh Installed Agents",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "agentkit.updateAgents",
+        "title": "AgentKit: Update Agents"
+      },
+      {
+        "command": "agentkit.removeAgents",
+        "title": "AgentKit: Remove Agents"
+      },
+      {
+        "command": "agentkit.viewAgent",
+        "title": "AgentKit: View Agent Details"
+      },
+      {
+        "command": "agentkit.openSettings",
+        "title": "AgentKit: Open Settings"
+      },
+      {
+        "command": "agentkit.previewAgent",
+        "title": "AgentKit: Preview Agent"
+      },
+      {
+        "command": "agentkit.toggleFavorite",
+        "title": "Toggle Favorite",
+        "icon": "$(star)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agentkit-sidebar",
+          "title": "AgentKit",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "agentkit-sidebar": [
+        {
+          "id": "agentkit-installed",
+          "name": "Installed Agents",
+          "icon": "$(check)",
+          "contextualTitle": "AgentKit Installed"
+        },
+        {
+          "id": "agentkit-available",
+          "name": "Available Agents",
+          "icon": "$(cloud-download)",
+          "contextualTitle": "AgentKit Available"
+        },
+        {
+          "id": "agentkit-claude-initial-context",
+          "name": "Claude Code Context",
+          "icon": "$(cloud-download)",
+          "contextualTitle": "Claude Code Context"
+        },
+        {
+          "id": "agentkit-task",
+          "name": "Task",
+          "icon": "$(checklist)",
+          "contextualTitle": "AgentKit Task"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "agentkit-installed",
+        "contents": "No agents installed yet.\n[Open Agent Manager](command:agentkit.openPanel)\n[Quick Setup](command:agentkit.quickInit)"
+      },
+      {
+        "view": "agentkit-claude-initial-context",
+        "contents": "Set up Claude context resources.\n[Init env](command:agentkit.initClaudeEnvironment)\n[Init Resouce Claude](command:agentkit.initClaudeResource)\n[Graph Obsidian](command:agentkit.graphObsidian)"
+      },
+      {
+        "view": "agentkit-task",
+        "contents": "Prepare task context.\n[Task](command:agentkit.openTaskManager)\n[Fix bug](command:agentkit.openFixBugManager)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "agentkit.openPanel",
+          "when": "view == agentkit-installed || view == agentkit-available",
+          "group": "navigation@1"
+        },
+        {
+          "command": "agentkit.refreshAgents",
+          "when": "view == agentkit-installed || view == agentkit-available",
+          "group": "navigation@2"
+        },
+        {
+          "command": "agentkit.quickInit",
+          "when": "view == agentkit-available",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "agentkit.initAgents",
+          "when": "view == agentkit-available",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "agentkit.updateAgents",
+          "when": "view == agentkit-installed",
+          "group": "2_update@1"
+        },
+        {
+          "command": "agentkit.removeAgents",
+          "when": "view == agentkit-installed",
+          "group": "3_remove@1"
+        },
+        {
+          "command": "agentkit.initClaudeEnvironment",
+          "when": "view == agentkit-claude-initial-context",
+          "group": "navigation@0"
+        },
+        {
+          "command": "agentkit.initClaudeResource",
+          "when": "view == agentkit-claude-initial-context",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "agentkit.graphObsidian",
+          "when": "view == agentkit-claude-initial-context",
+          "group": "1_actions@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "agentkit.openPanel"
+        },
+        {
+          "command": "agentkit.quickInit"
+        },
+        {
+          "command": "agentkit.initAgents"
+        },
+        {
+          "command": "agentkit.initClaudeResource"
+        },
+        {
+          "command": "agentkit.initClaudeEnvironment"
+        },
+        {
+          "command": "agentkit.graphObsidian"
+        },
+        {
+          "command": "agentkit.openTaskManager"
+        },
+        {
+          "command": "agentkit.openFixBugManager"
+        },
+        {
+          "command": "agentkit.refreshAgents"
+        },
+        {
+          "command": "agentkit.updateAgents"
+        },
+        {
+          "command": "agentkit.removeAgents"
+        },
+        {
+          "command": "agentkit.viewAgent"
+        },
+        {
+          "command": "agentkit.toggleFavorite",
+          "when": "false"
+        },
+        {
+          "command": "agentkit.previewAgent",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "agentkit.toggleFavorite",
+          "when": "view == agentkit-available && viewItem =~ /^agent/",
+          "group": "inline"
+        },
+        {
+          "command": "agentkit.toggleFavorite",
+          "when": "view == agentkit-available && viewItem =~ /^agent|^favorite-agent/",
+          "group": "1_favorites@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AgentKit",
+      "properties": {
+        "agentkit.defaultTool": {
+          "type": "string",
+          "enum": [
+            "cursor",
+            "claude-code",
+            "copilot",
+            "aider",
+            "universal"
+          ],
+          "enumDescriptions": [
+            "Cursor - @-mentions and multi-file support",
+            "Claude Code - Native sub-agent support",
+            "GitHub Copilot - copilot-instructions.md",
+            "Aider - conventions.md",
+            "Universal - Works with any tool"
+          ],
+          "default": "cursor",
+          "description": "Default AI tool for agent configuration"
+        },
+        "agentkit.defaultFolder": {
+          "type": "string",
+          "default": "",
+          "description": "Custom default folder name (leave empty for tool-specific defaults)"
+        },
+        "agentkit.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh agent list when files change"
+        },
+        "agentkit.showWelcome": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show welcome message on first use"
+        },
+        "agentkit.defaultDepartments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "design",
+              "engineering",
+              "marketing",
+              "product",
+              "project-management",
+              "studio-operations",
+              "testing"
+            ]
+          },
+          "default": [
+            "engineering",
+            "design"
+          ],
+          "description": "Default departments to select"
+        },
+        "agentkit.favoriteAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of favorite agent IDs"
+        },
+        "agentkit.taskDocumentsFolder": {
+          "type": "string",
+          "default": ".project/docs",
+          "description": "Workspace-relative folder where Task Manager stores markdown documents converted with markitdown"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "compile": "tsc -p ./",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "package": "npm run build && npx @vscode/vsce package --no-dependencies",
+    "publish": "npm run build && npx @vscode/vsce publish --no-dependencies",
+    "publish:ovsx": "npm run build && npx ovsx publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.19.39",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.27.2",
+    "eslint": "^8.x",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@patricio0312rev/agentkit": "^0.2.2",
+    "minimatch": "^9.0.3",
+    "playwright": "^1.59.1"
+  },
+  "author": "Patricio Marroquin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patricio0312rev/agentkit-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/patricio0312rev/agentkit-vscode/issues"
+  },
+  "homepage": "https://github.com/patricio0312rev/agentkit-vscode#readme"
+}
