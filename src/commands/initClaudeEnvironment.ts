@@ -17,11 +17,11 @@ export async function initClaudeEnvironmentCommand(): Promise<void> {
       return;
     }
 
-    await ensureClaudeDocsFolder(workspaceFolder);
+    await ensureProjectDocsFolder(workspaceFolder);
 
     await runEnvironmentSetupInExternalTerminal();
 
-    vscode.window.showInformationMessage('AgentKit: Init env complete. Default docs path is .claude/docs');
+    vscode.window.showInformationMessage('AgentKit: Init env complete. Claude Code CLI and markitdown are ready.');
   } catch (error) {
     logger.error('Error initializing Claude environment', error as Error);
     vscode.window.showErrorMessage(`AgentKit Error: ${(error as Error).message}`);
@@ -60,8 +60,8 @@ async function getWorkspaceFolderOrPrompt(): Promise<vscode.Uri | undefined> {
   return selectedFolders[0];
 }
 
-async function ensureClaudeDocsFolder(workspaceFolder: vscode.Uri): Promise<vscode.Uri> {
-  const docsFolder = vscode.Uri.joinPath(workspaceFolder, '.claude', 'docs');
+async function ensureProjectDocsFolder(workspaceFolder: vscode.Uri): Promise<vscode.Uri> {
+  const docsFolder = vscode.Uri.joinPath(workspaceFolder, '.project', 'docs');
   await vscode.workspace.fs.createDirectory(docsFolder);
   return docsFolder;
 }
@@ -80,13 +80,13 @@ async function runEnvironmentSetupInExternalTerminal(): Promise<void> {
       cancellable: true
     },
     async (progress, token) => {
-      progress.report({ message: 'Installing markitdown in external terminal' });
+      progress.report({ message: 'Installing markitdown and Claude Code CLI in external terminal' });
       return waitForInstallStatus(statusPath, token);
     }
   );
 
   if (status.status !== 'success') {
-    throw new Error(status.message || 'markitdown installation failed');
+    throw new Error(status.message || 'Init env installation failed');
   }
 }
 
@@ -169,6 +169,73 @@ function Invoke-AgentKitCommand {
   }
 }
 
+function Test-AgentKitPathContains {
+  param([string]$PathList, [string]$Entry)
+
+  foreach ($pathItem in ($PathList -split ';')) {
+    if ($pathItem.Trim().TrimEnd([char]92) -ieq $Entry.TrimEnd([char]92)) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Add-ClaudeLocalBinToPath {
+  $localBin = Join-Path $env:USERPROFILE '.local\\bin'
+
+  if (Test-Path $localBin) {
+    if (-not (Test-AgentKitPathContains $env:PATH $localBin)) {
+      $env:PATH = "$localBin;$env:PATH"
+    }
+  }
+
+  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  if (-not $userPath) {
+    $userPath = ''
+  }
+
+  if (-not (Test-AgentKitPathContains $userPath $localBin)) {
+    $nextUserPath = if ($userPath) { "$localBin;$userPath" } else { $localBin }
+    [Environment]::SetEnvironmentVariable('Path', $nextUserPath, 'User')
+    Write-Host "Added Claude Code native install directory to user PATH: $localBin"
+  }
+}
+
+function Install-ClaudeCodeCli {
+  Add-ClaudeLocalBinToPath
+
+  if (Get-Command claude -ErrorAction SilentlyContinue) {
+    Invoke-AgentKitCommand 'Verify Claude Code CLI' 'claude' @('--version')
+    return
+  }
+
+  Write-Host ''
+  Write-Host '== Install Claude Code CLI =='
+  Write-Host 'Downloading official Claude Code native installer...'
+
+  $installerPath = Join-Path ([System.IO.Path]::GetTempPath()) ("claude-install-" + [System.Guid]::NewGuid().ToString() + ".ps1")
+  Invoke-WebRequest -UseBasicParsing -Uri 'https://claude.ai/install.ps1' -OutFile $installerPath
+  & $installerPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "Claude Code installer failed with exit code $LASTEXITCODE"
+  }
+
+  Add-ClaudeLocalBinToPath
+
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    $claudeExe = Join-Path $env:USERPROFILE '.local\\bin\\claude.exe'
+    if (Test-Path $claudeExe) {
+      Invoke-AgentKitCommand 'Verify Claude Code CLI' $claudeExe @('--version')
+      return
+    }
+
+    throw "Claude Code installed, but claude was not found. Add $env:USERPROFILE\\.local\\bin to PATH and restart VS Code."
+  }
+
+  Invoke-AgentKitCommand 'Verify Claude Code CLI' 'claude' @('--version')
+}
+
 try {
   Write-Host 'AgentKit Init env'
   Write-Host 'Checking Python...'
@@ -241,12 +308,14 @@ try {
 
   Invoke-AgentKitCommand 'Verify markitdown' $python.Command ($python.Arguments + @('-m', 'markitdown', '--help'))
 
+  Install-ClaudeCodeCli
+
   Write-Host ''
   for ($seconds = 3; $seconds -ge 1; $seconds--) {
     Write-Host "INSTALL SUCCESSFUL!! AUTO CLOSE IN $seconds seconds..."
     Start-Sleep -Seconds 1
   }
-  Write-AgentKitStatus 'success' 'markitdown installed successfully'
+  Write-AgentKitStatus 'success' 'markitdown and Claude Code CLI installed successfully'
   exit 0
 } catch {
   Write-AgentKitStatus 'failed' $_.Exception.Message
@@ -314,6 +383,76 @@ run_required() {
   fi
 }
 
+add_claude_local_bin_to_path() {
+  local local_bin="$HOME/.local/bin"
+
+  if [ -d "$local_bin" ]; then
+    case ":$PATH:" in
+      *":$local_bin:"*) ;;
+      *) export PATH="$local_bin:$PATH" ;;
+    esac
+  fi
+}
+
+persist_claude_local_bin_to_path() {
+  local local_bin="$HOME/.local/bin"
+  local line='export PATH="$HOME/.local/bin:$PATH"'
+  local profile_file="$HOME/.bashrc"
+
+  case "\${SHELL:-}" in
+    */zsh) profile_file="$HOME/.zshrc" ;;
+    */fish) profile_file="" ;;
+  esac
+
+  if [ -z "$profile_file" ]; then
+    echo "Claude Code installed at $local_bin. Add that directory to PATH for future shell sessions."
+    return
+  fi
+
+  if [ ! -f "$profile_file" ]; then
+    printf '%s\\n' "$line" > "$profile_file"
+    echo "Added Claude Code native install directory to PATH in $profile_file"
+    return
+  fi
+
+  if ! grep -Fxq "$line" "$profile_file"; then
+    printf '\\n%s\\n' "$line" >> "$profile_file"
+    echo "Added Claude Code native install directory to PATH in $profile_file"
+  fi
+}
+
+install_claude_code_cli() {
+  add_claude_local_bin_to_path
+
+  if command -v claude >/dev/null 2>&1; then
+    run_required "Verify Claude Code CLI" claude --version
+    return
+  fi
+
+  echo
+  echo "== Install Claude Code CLI =="
+  echo "Downloading official Claude Code native installer..."
+
+  installer_path="$(mktemp -t claude-install.XXXXXX)"
+  if command -v curl >/dev/null 2>&1; then
+    run_required "Download Claude Code installer" curl -fsSL https://claude.ai/install.sh -o "$installer_path"
+  elif command -v wget >/dev/null 2>&1; then
+    run_required "Download Claude Code installer" wget -qO "$installer_path" https://claude.ai/install.sh
+  else
+    echo "INSTALL FAILED: curl or wget is required to install Claude Code CLI"
+    write_status failed "curl or wget is required to install Claude Code CLI"
+    echo "Press Enter to close..."
+    read -r _
+    exit 1
+  fi
+
+  run_required "Install Claude Code CLI" bash "$installer_path"
+  add_claude_local_bin_to_path
+  persist_claude_local_bin_to_path
+
+  run_required "Verify Claude Code CLI" claude --version
+}
+
 echo "AgentKit Init env"
 echo "Checking Python..."
 
@@ -370,12 +509,14 @@ fi
 
 run_required "Verify markitdown" "$PYTHON_CMD" -m markitdown --help
 
+install_claude_code_cli
+
 echo
 for seconds in 3 2 1; do
   echo "INSTALL SUCCESSFUL!! AUTO CLOSE IN $seconds seconds..."
   sleep 1
 done
-write_status success "markitdown installed successfully"
+write_status success "markitdown and Claude Code CLI installed successfully"
 exit 0
 `;
 }

@@ -1,6 +1,10 @@
 export type TaskManagerMode = 'task' | 'fix-bug';
 
-export type TaskNodeId = 'document' | 'figma' | 'jira' | 'code' | 'testcase';
+export type TaskItemType = 'task' | 'bug';
+
+export type TaskManagerView = 'list' | 'create' | 'detail';
+
+export type TaskNodeId = 'document' | 'figma' | 'jira' | 'markdown' | 'code' | 'testcase';
 
 export type TaskNodeStatus = 'Unknown' | 'Ready' | 'Missing' | 'Sync' | 'Un-sync';
 
@@ -15,6 +19,20 @@ export interface TaskDocument {
   workspacePath: string;
 }
 
+export interface TaskManagerItem {
+  id: string;
+  type: TaskItemType;
+  folderPath: string;
+  markdownPath: string;
+  jiraPath: string;
+  figmaCachePath: string;
+  createdAt?: string;
+  updatedAt?: string;
+  hasJira: boolean;
+  hasMarkdown: boolean;
+  hasFigmaCache: boolean;
+}
+
 export interface TaskFigmaConnection {
   link: string;
   fileKey: string;
@@ -23,6 +41,7 @@ export interface TaskFigmaConnection {
   nodeName?: string;
   lastSyncedAt: string;
   nodes: TaskFigmaNode[];
+  selectedNodeIds: string[];
 }
 
 export interface TaskFigmaNode {
@@ -45,14 +64,17 @@ export interface TaskJiraTicket {
   url: string;
   title: string;
   key?: string;
-  summary?: string;
-  status?: string;
+  description?: string;
+  comments: string[];
   content: string;
   lastReadAt: string;
 }
 
 export interface TaskManagerState {
   mode: TaskManagerMode;
+  items: TaskManagerItem[];
+  currentItem?: TaskManagerItem;
+  projectFolder: string;
   documentsFolder: string;
   documents: TaskDocument[];
   nodes: TaskProcessNode[];
@@ -60,24 +82,81 @@ export interface TaskManagerState {
   jira?: TaskJiraConnection;
 }
 
+export interface TaskMarkdownContent {
+  content: string;
+  updatedAt?: string;
+  generatedAt: string;
+}
+
 export interface TaskDocumentUpload {
   fileName: string;
   contentBase64: string;
   mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
 }
 
 export interface TaskFigmaSyncRequest {
   link: string;
   token: string;
   mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+}
+
+export interface TaskFigmaNodeSelectionRequest {
+  selectedNodeIds: string[];
+  mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+}
+
+export interface TaskMarkdownRequest {
+  mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+  regenerate?: boolean;
+}
+
+export interface TaskMarkdownUpdateRequest {
+  content: string;
+  mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+}
+
+export interface TaskMarkdownRunRequest {
+  content: string;
+  mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
 }
 
 export interface TaskJiraOpenRequest {
   link: string;
   mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
 }
 
 export interface TaskJiraReadRequest {
   link: string;
   mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+}
+
+export interface TaskItemCreateRequest {
+  id: string;
+  type: TaskItemType;
+}
+
+export interface TaskItemSelectRequest {
+  id: string;
+  type: TaskItemType;
+}
+
+export interface TaskItemDeleteRequest {
+  id: string;
+  type: TaskItemType;
 }

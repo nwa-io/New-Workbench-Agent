@@ -35,7 +35,7 @@ export class ConfigService {
   }
 
   getTaskDocumentsFolder(): string {
-    return this.config.get<string>(CONFIG_KEYS.TASK_DOCUMENTS_FOLDER, '.claude/docs');
+    return this.config.get<string>(CONFIG_KEYS.TASK_DOCUMENTS_FOLDER, '.project/docs');
   }
 
   async setDefaultTool(tool: ToolType): Promise<void> {
