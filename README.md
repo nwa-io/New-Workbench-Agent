@@ -1,10 +1,10 @@
-# 🤖 New Workbench Agent for VS Code
+# 🐙 New Workbench Agent for VS Code
 
 > **A visual interface for generating, installing, and managing AI agent workflows across VS Code, Claude Code, Cursor, GitHub Copilot, Aider, and more.**
 
-<img src="@README/Interface_claude_setting.png" alt="" width="100%" height="auto"><br/>
+<p align="center"><img src="nwa-agent.png" alt="" width="450px" height="auto"></p>
 
-New Workbench Agent is a VS Code extension for setting up AI-assisted development workflows without manually copying prompts or configuration files. It provides a guided UI for selecting agents, installing tool-specific resources, and managing Claude Code context files from one workspace.
+New Workbench Agent (NWA) is a VS Code extension for setting up AI-assisted development workflows without manually copying prompts or configuration files. It provides a guided UI for selecting agents, installing tool-specific resources, and managing Claude Code context files from one workspace.
 
 ---
 
