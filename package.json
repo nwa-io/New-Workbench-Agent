@@ -107,7 +107,7 @@
         {
           "id": "nwa-sidebar",
           "title": "NWA",
-          "icon": "$(robot)"
+          "icon": "media/octopus.svg"
         }
       ]
     },
