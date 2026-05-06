@@ -153,14 +153,14 @@ export class ClaudeResourcePanel {
       const selectedResources = CLAUDE_RESOURCES.filter(resource => selectedResourceIds.includes(resource.id));
 
       if (selectedResources.length === 0) {
-        vscode.window.showWarningMessage('AgentKit: Select at least one Claude resource to install');
+        vscode.window.showWarningMessage('NWA: Select at least one Claude resource to install');
         this.panel.webview.postMessage({ command: 'installClaudeResourcesFailed' });
         return;
       }
 
       const workspaceFolder = await this.fileSystemService.getWorkspaceFolder();
       if (!workspaceFolder) {
-        vscode.window.showErrorMessage('AgentKit: Please open a workspace folder first');
+        vscode.window.showErrorMessage('NWA: Please open a workspace folder first');
         this.panel.webview.postMessage({ command: 'installClaudeResourcesFailed' });
         return;
       }
@@ -174,11 +174,11 @@ export class ClaudeResourcePanel {
 
       this.panel.webview.postMessage({ command: 'installClaudeResourcesComplete' });
       vscode.window.showInformationMessage(
-        `AgentKit: Installed ${selectedResources.length} Claude ${selectedResources.length === 1 ? 'resource' : 'resources'} successfully`
+        `NWA: Installed ${selectedResources.length} Claude ${selectedResources.length === 1 ? 'resource' : 'resources'} successfully`
       );
     } catch (error: any) {
       logger.error('Error installing Claude resources', error);
-      vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+      vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
       this.panel.webview.postMessage({ command: 'installClaudeResourcesFailed' });
     }
   }

@@ -27,7 +27,7 @@ export async function initAgentsCommand(context: vscode.ExtensionContext): Promi
 
     const selectedTool = await vscode.window.showQuickPick(toolItems, {
       placeHolder: 'Select your AI tool',
-      title: 'AgentKit Setup - Step 1 of 4'
+      title: 'NWA Setup - Step 1 of 4'
     });
 
     if (!selectedTool) {
@@ -47,7 +47,7 @@ export async function initAgentsCommand(context: vscode.ExtensionContext): Promi
     const selectedDepts = await vscode.window.showQuickPick(deptItems, {
       placeHolder: 'Select departments (multi-select)',
       canPickMany: true,
-      title: 'AgentKit Setup - Step 2 of 4'
+      title: 'NWA Setup - Step 2 of 4'
     });
 
     if (!selectedDepts || selectedDepts.length === 0) {
@@ -72,7 +72,7 @@ export async function initAgentsCommand(context: vscode.ExtensionContext): Promi
     const selectedAgents = await vscode.window.showQuickPick(allAgents, {
       placeHolder: 'Select specific agents (or keep all)',
       canPickMany: true,
-      title: 'AgentKit Setup - Step 3 of 4'
+      title: 'NWA Setup - Step 3 of 4'
     });
 
     if (!selectedAgents || selectedAgents.length === 0) {
@@ -85,7 +85,7 @@ export async function initAgentsCommand(context: vscode.ExtensionContext): Promi
       prompt: 'Custom folder name (optional)',
       placeHolder: defaultFolder,
       value: configService.getDefaultFolder() || defaultFolder,
-      title: 'AgentKit Setup - Step 4 of 4'
+      title: 'NWA Setup - Step 4 of 4'
     });
 
     const folder = customFolder || defaultFolder;
@@ -103,7 +103,7 @@ export async function initAgentsCommand(context: vscode.ExtensionContext): Promi
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'AgentKit: Installing agents...',
+        title: 'NWA: Installing agents...',
         cancellable: false
       },
       async (progress) => {
@@ -134,13 +134,13 @@ export async function initAgentsCommand(context: vscode.ExtensionContext): Promi
 
         } catch (error: any) {
           logger.error('Error generating agents', error);
-          vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+          vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
         }
       }
     );
 
   } catch (error: any) {
     logger.error('Error in initAgents command', error);
-    vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+    vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
   }
 }

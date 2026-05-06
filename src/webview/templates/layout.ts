@@ -1,5 +1,5 @@
 export const layout = `<div class="container">
-  <h1>🤖 AgentKit Manager</h1>
+  <h1>🐙 New Workbench Agent Manager</h1>
   <p class="subtitle">Install and manage AI agents for your development workflow</p>
 
   <!-- Search Box -->

@@ -26,7 +26,7 @@ export class AgentKitPanel {
 
     const panel = vscode.window.createWebviewPanel(
       'agentkitPanel',
-      'AgentKit Manager',
+      'NWA Manager',
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -120,7 +120,7 @@ export class AgentKitPanel {
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Window,
-          title: 'Installing AgentKit agents: ',
+          title: 'Installing NWA agents: ',
           cancellable: false
         },
         async (progress) => {

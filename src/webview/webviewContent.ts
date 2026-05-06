@@ -3,7 +3,7 @@ import { layout } from './templates/layout';
 import { getScriptContent } from './templates/scriptTemplate';
 
 /**
- * Generates the complete HTML content for the AgentKit webview.
+ * Generates the complete HTML content for the NWA webview.
  * This function assembles the webview from modular components:
  * - CSS styles from templates/styles.ts
  * - HTML layout from templates/layout.ts
@@ -17,7 +17,7 @@ export function getWebviewContent(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentKit Manager</title>
+  <title>New Workbench Agent</title>
   <style>
 ${styles}
   </style>

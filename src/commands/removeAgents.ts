@@ -15,7 +15,7 @@ export async function removeAgentsCommand(): Promise<void> {
     }
 
     const answer = await vscode.window.showWarningMessage(
-      'This will remove ALL AgentKit configuration folders (.cursorrules, .claude, .aider, .github/copilot-instructions.md, .ai). This action cannot be undone. Continue?',
+      'This will remove ALL NWA configuration folders (.cursorrules, .claude, .aider, .github/copilot-instructions.md, .ai). This action cannot be undone. Continue?',
       { modal: true },
       'Remove All',
       'Cancel'
@@ -28,7 +28,7 @@ export async function removeAgentsCommand(): Promise<void> {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'AgentKit: Removing agents...',
+        title: 'NWA: Removing agents...',
         cancellable: false
       },
       async (progress) => {
@@ -62,7 +62,7 @@ export async function removeAgentsCommand(): Promise<void> {
           progress.report({ increment: 100, message: 'Complete!' });
 
           vscode.window.showInformationMessage(
-            `✅ Removed ${removedCount} AgentKit configuration folders`
+            `✅ Removed ${removedCount} NWA configuration folders`
           );
 
           // Refresh tree views
@@ -70,13 +70,13 @@ export async function removeAgentsCommand(): Promise<void> {
 
         } catch (error: any) {
           logger.error('Error removing agents', error);
-          vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+          vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
         }
       }
     );
 
   } catch (error: any) {
     logger.error('Error in removeAgents command', error);
-    vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+    vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
   }
 }

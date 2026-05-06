@@ -5,7 +5,7 @@ import { quickInitCommand } from './commands/quickPick';
 import { refreshAgentsCommand } from './commands/refreshAgents';
 import { updateAgentsCommand } from './commands/updateAgents';
 import { removeAgentsCommand } from './commands/removeAgents';
-import { previewAgentCommand, setExtensionPath } from './commands/previewAgent';
+import { previewAgentCommand } from './commands/previewAgent';
 import { toggleFavoriteCommand } from './commands/toggleFavorite';
 import { initClaudeResourceCommand } from './commands/initClaudeResource';
 import { initClaudeEnvironmentCommand } from './commands/initClaudeEnvironment';
@@ -22,9 +22,6 @@ import path from 'path';
 import { ClaudeContextProvider } from './providers/ClaudeContextProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-  // Set extension path for preview command
-  setExtensionPath(context.extensionPath);
-
   const configService = new ConfigService();
   const fileSystemService = new FileSystemService();
 
@@ -165,8 +162,7 @@ function registerCommands(
     vscode.commands.registerCommand(COMMANDS.OPEN_SETTINGS, () => {
       logger.info('Opening settings');
       vscode.commands.executeCommand(
-        'workbench.action.openSettings',
-        '@ext:patricio0312rev.agentkit-vscode'
+        'workbench.action.openSettings'
       );
     }),
 
@@ -233,8 +229,8 @@ function createStatusBarItem(context: vscode.ExtensionContext) {
   );
 
   statusBarItem.command = COMMANDS.OPEN_PANEL;
-  statusBarItem.text = '$(robot) AgentKit';
-  statusBarItem.tooltip = 'Open AgentKit Manager';
+  statusBarItem.text = '$(robot) NWA';
+  statusBarItem.tooltip = 'Open NWA Manager';
   statusBarItem.show();
 
   context.subscriptions.push(statusBarItem);
@@ -252,7 +248,7 @@ async function showWelcomeMessageIfNeeded(
     logger.info('Showing welcome message');
 
     const answer = await vscode.window.showInformationMessage(
-      '👋 Welcome to AgentKit!\n\nSet up AI agents for your development workflow now?',
+      '👋 Welcome to New Workbench Agent!\n\nSet up AI agents for your development workflow now?',
       { modal: false },
       'Quick Setup',
       'Custom Setup'
@@ -270,6 +266,6 @@ async function showWelcomeMessageIfNeeded(
 }
 
 export function deactivate() {
-  logger.info('AgentKit extension deactivated');
+  logger.info('NWA extension deactivated');
   logger.dispose();
 }

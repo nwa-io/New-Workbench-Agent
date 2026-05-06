@@ -8,7 +8,7 @@ export async function openObsidianGraphCommand(extensionUri: vscode.Uri): Promis
   const workspaceFolder = await fileSystemService.getWorkspaceFolder();
 
   if (!workspaceFolder) {
-    vscode.window.showErrorMessage('AgentKit: Please open/select a repository folder first');
+    vscode.window.showErrorMessage('NWA: Please open/select a repository folder first');
     return;
   }
 

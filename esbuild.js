@@ -5,45 +5,15 @@ const path = require('path');
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
-// Plugin to copy agentkit templates and fix bundled paths
+// Plugin to copy static assets into dist/
 const copyTemplatesPlugin = {
   name: 'nw-templates',
   setup(build) {
     build.onEnd(() => {
-      const nwaPath = path.join(__dirname, 'node_modules/@b0yblake/New-Workbench-Agent');
       const distDir = path.join(__dirname, 'dist');
 
-      // Ensure dist directory exists
       if (!fs.existsSync(distDir)) {
         fs.mkdirSync(distDir, { recursive: true });
-      }
-
-      // Copy templates directory
-      const srcTemplates = path.join(nwaPath, 'templates');
-      const destTemplates = path.join(distDir, 'templates');
-
-      if (fs.existsSync(srcTemplates)) {
-        if (fs.existsSync(destTemplates)) {
-          fs.rmSync(destTemplates, { recursive: true });
-        }
-        fs.cpSync(srcTemplates, destTemplates, { recursive: true });
-        console.log('✓ Copied nwa templates');
-      } else {
-        console.warn('⚠ Templates directory not found:', srcTemplates);
-      }
-
-      // Copy src/lib directory (config files)
-      const srcLib = path.join(nwaPath, 'src/lib');
-      const destLib = path.join(distDir, 'lib');
-
-      if (fs.existsSync(srcLib)) {
-        if (fs.existsSync(destLib)) {
-          fs.rmSync(destLib, { recursive: true });
-        }
-        fs.cpSync(srcLib, destLib, { recursive: true });
-        console.log('✓ Copied agentkit config files');
-      } else {
-        console.warn('⚠ Lib directory not found:', srcLib);
       }
 
       const srcExecution = path.join(__dirname, 'src/webview/execution');
@@ -70,34 +40,6 @@ const copyTemplatesPlugin = {
         console.log('Copied Obsidian graph webview assets');
       } else {
         console.warn('Obsidian graph webview assets directory not found:', srcObsidianGraphMedia);
-      }
-
-      const extensionPath = path.join(distDir, 'extension.js');
-      if (fs.existsSync(extensionPath)) {
-        let content = fs.readFileSync(extensionPath, 'utf8');
-
-        content = content.replace(
-          /__dirname,\s*"\.\.\/\.\.\/templates\/departments"/g,
-          '__dirname,"./templates/departments"'
-        );
-
-        // Remove the HTML comment from fallback template
-        content = content.replace(
-          /`<!--[^`]+?\.md -->\n/g,
-          '`'
-        ).replace(
-          /`<!--[^`]+?\.md -->\\n/g,
-          '`'
-        );
-
-        // Improve the fallback template content
-        content = content.replace(
-          /This is a placeholder agent file\. Please add specific instructions and responsibilities\./g,
-          'Define the specific role and capabilities of this agent.'
-        );
-
-        fs.writeFileSync(extensionPath, content);
-        console.log('✓ Fixed template paths in bundled code');
       }
     });
   }

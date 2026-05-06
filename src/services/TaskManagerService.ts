@@ -892,7 +892,7 @@ export class TaskManagerService {
     return new Promise((resolve, reject) => {
       const headers: Record<string, string> = {};
       headers['X-Figma-Token'] = token;
-      headers['User-Agent'] = 'agentkit-vscode';
+      headers['User-Agent'] = 'NWA-vscode';
 
       const request = https.request(
         {
@@ -2196,7 +2196,7 @@ export class TaskManagerService {
       return 'For PDF files, install the PDF extra with: python -m pip install "markitdown[pdf]".';
     }
 
-    return 'Install markitdown or run AgentKit: Init env.';
+    return 'Install markitdown or run NWA: Init env.';
   }
 
   private async getUniqueMarkdownUri(documentsFolderUri: vscode.Uri, safeBaseName: string): Promise<vscode.Uri> {

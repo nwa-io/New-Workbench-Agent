@@ -28,7 +28,7 @@ export async function updateAgentsCommand(): Promise<void> {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'AgentKit: Updating agents...',
+        title: 'NWA: Updating agents...',
         cancellable: false
       },
       async (progress) => {
@@ -62,13 +62,13 @@ export async function updateAgentsCommand(): Promise<void> {
 
         } catch (error: any) {
           logger.error('Error updating agents', error);
-          vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+          vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
         }
       }
     );
 
   } catch (error: any) {
     logger.error('Error in updateAgents command', error);
-    vscode.window.showErrorMessage(`AgentKit Error: ${error.message}`);
+    vscode.window.showErrorMessage(`NWA Error: ${error.message}`);
   }
 }

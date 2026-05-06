@@ -21,10 +21,10 @@ export async function initClaudeEnvironmentCommand(): Promise<void> {
 
     await runEnvironmentSetupInExternalTerminal();
 
-    vscode.window.showInformationMessage('AgentKit: Init env complete. Claude Code CLI and markitdown are ready.');
+    vscode.window.showInformationMessage('NWA: Init env complete. Claude Code CLI and markitdown are ready.');
   } catch (error) {
     logger.error('Error initializing Claude environment', error as Error);
-    vscode.window.showErrorMessage(`AgentKit Error: ${(error as Error).message}`);
+    vscode.window.showErrorMessage(`NWA Error: ${(error as Error).message}`);
   }
 }
 
@@ -35,7 +35,7 @@ async function getWorkspaceFolderOrPrompt(): Promise<vscode.Uri | undefined> {
   }
 
   const selectedFolders = await vscode.window.showOpenDialog({
-    title: 'Select a workspace folder for AgentKit Init env',
+    title: 'Select a workspace folder for NWA Init env',
     canSelectFiles: false,
     canSelectFolders: true,
     canSelectMany: false,
@@ -43,7 +43,7 @@ async function getWorkspaceFolderOrPrompt(): Promise<vscode.Uri | undefined> {
   });
 
   if (!selectedFolders?.[0]) {
-    vscode.window.showErrorMessage('AgentKit: Please open or select a workspace folder before running Init env');
+    vscode.window.showErrorMessage('NWA: Please open or select a workspace folder before running Init env');
     return undefined;
   }
 
@@ -54,7 +54,7 @@ async function getWorkspaceFolderOrPrompt(): Promise<vscode.Uri | undefined> {
   );
 
   if (!addedWorkspaceFolder) {
-    vscode.window.showInformationMessage('AgentKit: Using the selected folder for this Init env run');
+    vscode.window.showInformationMessage('NWA: Using the selected folder for this Init env run');
   }
 
   return selectedFolders[0];
@@ -76,7 +76,7 @@ async function runEnvironmentSetupInExternalTerminal(): Promise<void> {
   const status = await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'AgentKit: Waiting for Init env terminal',
+      title: 'NWA: Waiting for Init env terminal',
       cancellable: true
     },
     async (progress, token) => {
@@ -237,7 +237,7 @@ function Install-ClaudeCodeCli {
 }
 
 try {
-  Write-Host 'AgentKit Init env'
+  Write-Host 'NWA Init env'
   Write-Host 'Checking Python...'
 
   $pythonCandidates = @(
@@ -331,7 +331,7 @@ try {
 function getWindowsCommandWrapper(powershellScriptPath: string, statusPath: string): string {
   return `@echo off
 setlocal
-title AgentKit Init env
+title NWA Init env
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${powershellScriptPath}"
 set "EXIT_CODE=%ERRORLEVEL%"
 if not exist "${statusPath}" (
@@ -453,7 +453,7 @@ install_claude_code_cli() {
   run_required "Verify Claude Code CLI" claude --version
 }
 
-echo "AgentKit Init env"
+echo "NWA Init env"
 echo "Checking Python..."
 
 PYTHON_CMD=""

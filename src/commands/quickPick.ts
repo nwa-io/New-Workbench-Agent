@@ -59,7 +59,7 @@ export async function quickInitCommand(context: vscode.ExtensionContext): Promis
 
     const selectedPreset = await vscode.window.showQuickPick(presets, {
       placeHolder: 'Choose a quick setup preset',
-      title: 'AgentKit Quick Setup'
+      title: 'NWA Quick Setup'
     });
 
     if (!selectedPreset) {
@@ -101,7 +101,7 @@ export async function quickInitCommand(context: vscode.ExtensionContext): Promis
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'AgentKit: Quick Setup...',
+        title: 'NWA: Quick Setup...',
         cancellable: false
       },
       async (progress) => {

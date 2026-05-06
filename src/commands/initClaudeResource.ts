@@ -7,7 +7,7 @@ export async function initClaudeResourceCommand(extensionUri: vscode.Uri): Promi
   const workspaceFolder = await fileSystemService.getWorkspaceFolder();
 
   if (!workspaceFolder) {
-    vscode.window.showErrorMessage('AgentKit: Please open a workspace folder first');
+    vscode.window.showErrorMessage('NWA: Please open a workspace folder first');
     return;
   }
 

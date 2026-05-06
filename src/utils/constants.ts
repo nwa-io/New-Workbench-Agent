@@ -1,41 +1,41 @@
-export const EXTENSION_ID = 'agentkit-vscode';
-export const EXTENSION_NAME = 'AgentKit';
+export const EXTENSION_ID = 'nwa-vscode';
+export const EXTENSION_NAME = 'NWA';
 
 export const COMMANDS = {
-  OPEN_PANEL: 'agentkit.openPanel',
-  QUICK_INIT: 'agentkit.quickInit',
-  INIT_AGENTS: 'agentkit.initAgents',
-  INIT_CLAUDE_RESOURCE: 'agentkit.initClaudeResource',
-  INIT_CLAUDE_ENVIRONMENT: 'agentkit.initClaudeEnvironment',
-  GRAPH_OBSIDIAN: 'agentkit.graphObsidian',
-  OPEN_TASK_MANAGER: 'agentkit.openTaskManager',
-  OPEN_FIX_BUG_MANAGER: 'agentkit.openFixBugManager',
-  REFRESH_AGENTS: 'agentkit.refreshAgents',
-  UPDATE_AGENTS: 'agentkit.updateAgents',
-  REMOVE_AGENTS: 'agentkit.removeAgents',
-  VIEW_AGENT: 'agentkit.viewAgent',
-  OPEN_SETTINGS: 'agentkit.openSettings',
-  PREVIEW_AGENT: 'agentkit.previewAgent',
-  TOGGLE_FAVORITE: 'agentkit.toggleFavorite'
+  OPEN_PANEL: 'nwa.openPanel',
+  QUICK_INIT: 'nwa.quickInit',
+  INIT_AGENTS: 'nwa.initAgents',
+  INIT_CLAUDE_RESOURCE: 'nwa.initClaudeResource',
+  INIT_CLAUDE_ENVIRONMENT: 'nwa.initClaudeEnvironment',
+  GRAPH_OBSIDIAN: 'nwa.graphObsidian',
+  OPEN_TASK_MANAGER: 'nwa.openTaskManager',
+  OPEN_FIX_BUG_MANAGER: 'nwa.openFixBugManager',
+  REFRESH_AGENTS: 'nwa.refreshAgents',
+  UPDATE_AGENTS: 'nwa.updateAgents',
+  REMOVE_AGENTS: 'nwa.removeAgents',
+  VIEW_AGENT: 'nwa.viewAgent',
+  OPEN_SETTINGS: 'nwa.openSettings',
+  PREVIEW_AGENT: 'nwa.previewAgent',
+  TOGGLE_FAVORITE: 'nwa.toggleFavorite'
 } as const;
 
 export const CONFIG_KEYS = {
-  DEFAULT_TOOL: 'agentkit.defaultTool',
-  DEFAULT_FOLDER: 'agentkit.defaultFolder',
-  AUTO_REFRESH: 'agentkit.autoRefresh',
-  SHOW_WELCOME: 'agentkit.showWelcome',
-  DEFAULT_DEPARTMENTS: 'agentkit.defaultDepartments',
-  FAVORITE_AGENTS: 'agentkit.favoriteAgents',
-  TASK_DOCUMENTS_FOLDER: 'agentkit.taskDocumentsFolder'
+  DEFAULT_TOOL: 'nwa.defaultTool',
+  DEFAULT_FOLDER: 'nwa.defaultFolder',
+  AUTO_REFRESH: 'nwa.autoRefresh',
+  SHOW_WELCOME: 'nwa.showWelcome',
+  DEFAULT_DEPARTMENTS: 'nwa.defaultDepartments',
+  FAVORITE_AGENTS: 'nwa.favoriteAgents',
+  TASK_DOCUMENTS_FOLDER: 'nwa.taskDocumentsFolder'
 } as const;
 
 export const TREE_VIEW_IDS = {
-  INSTALLED: 'agentkit-installed',
-  AVAILABLE: 'agentkit-available',
-  CLAUDECONTEXT: 'agentkit-claude-initial-context',
-  TASK: 'agentkit-task'
+  INSTALLED: 'nwa-installed',
+  AVAILABLE: 'nwa-available',
+  CLAUDECONTEXT: 'nwa-claude-initial-context',
+  TASK: 'nwa-task'
 } as const;
 
 export const GLOBAL_STATE_KEYS = {
-  HAS_SHOWN_WELCOME: 'agentkit.hasShownWelcome'
+  HAS_SHOWN_WELCOME: 'nwa.hasShownWelcome'
 } as const;

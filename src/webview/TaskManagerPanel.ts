@@ -52,8 +52,8 @@ export class TaskManagerPanel {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'agentkitTaskManager',
-      'AgentKit Task Manager',
+      'NWATaskManager',
+      'NWA Task Manager',
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -501,7 +501,7 @@ export class TaskManagerPanel {
           message: `Claude Code terminal opened with ${markdownPath}.`
         }
       });
-      vscode.window.showInformationMessage('AgentKit: Claude Code terminal opened.');
+      vscode.window.showInformationMessage('NWA: Claude Code terminal opened.');
     } catch (error) {
       logger.error('Error running task markdown', error as Error);
       this._panel.webview.postMessage({
@@ -546,16 +546,16 @@ export class TaskManagerPanel {
     const claudeCommand = this.getClaudeCodeCommand(markdownPath);
     const cwd = workspaceFolder.fsPath.replace(/\\/g, '/');
     const bashDonePath = donePath.replace(/\\/g, '/');
-    const title = itemId ? `AgentKit Claude Code: ${itemId}` : 'AgentKit Claude Code';
+    const title = itemId ? `NWA Claude Code: ${itemId}` : 'NWA Claude Code';
 
     const bashScript = `#!/usr/bin/env bash
-export PATH="$HOME/.local/bin:$PATH"
-cd "${cwd}"
-${claudeCommand}
-status=$?
-: > "${bashDonePath}"
-exit $status
-`;
+      export PATH="$HOME/.local/bin:$PATH"
+      cd "${cwd}"
+      ${claudeCommand}
+      status=$?
+      : > "${bashDonePath}"
+      exit $status
+      `;
 
     const bashScriptPath = path.join(tempDir, 'run-claude.sh');
     await fsPromises.writeFile(bashScriptPath, bashScript, 'utf8');
@@ -652,7 +652,7 @@ exit $status
   private getClaudeCodeCommand(markdownPath: string): string {
     const normalizedMarkdownPath = markdownPath.replace(/\\/g, '/');
     const prompt = [
-      `Read the AgentKit markdown brief at ${normalizedMarkdownPath}.`,
+      `Read the NWA markdown brief at ${normalizedMarkdownPath}.`,
       'Implement the requested coding work in this workspace.',
       'Keep changes scoped to the brief, run relevant verification, and summarize what changed.'
     ].join(' ');
