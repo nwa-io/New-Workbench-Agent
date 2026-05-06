@@ -1,0 +1,372 @@
+{
+  "name": "new-workbench-agent-vscode",
+  "displayName": "New Workbench Agent - AI Agent complete your work in second for Code Editors",
+  "description": "Completely your workflow for task/bug in a second",
+  "version": "0.1.0",
+  "publisher": "b0yblake",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "icon": "nwa-agent.png",
+  "categories": [
+    "Other",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "ai",
+    "agents",
+    "claude",
+    "cursor",
+    "copilot",
+    "claude-code",
+    "ai-agents",
+    "productivity",
+    "automation",
+    "sub-agents",
+    "ai-tools"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "nwa.openPanel",
+        "title": "NWA: Open Agent Manager",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "nwa.quickInit",
+        "title": "NWA: Quick Setup",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "nwa.initAgents",
+        "title": "NWA: Initialize Agents"
+      },
+      {
+        "command": "nwa.initClaudeResource",
+        "title": "NWA: Init Resource Claude",
+        "icon": "$(add)"
+      },
+      {
+        "command": "nwa.initClaudeEnvironment",
+        "title": "Init env",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "nwa.graphObsidian",
+        "title": "Graph Obsidian",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "nwa.openTaskManager",
+        "title": "NWA: Task",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "nwa.openFixBugManager",
+        "title": "NWA: Fix Bug",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "nwa.refreshAgents",
+        "title": "NWA: Refresh Installed Agents",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nwa.updateAgents",
+        "title": "NWA: Update Agents"
+      },
+      {
+        "command": "nwa.removeAgents",
+        "title": "NWA: Remove Agents"
+      },
+      {
+        "command": "nwa.viewAgent",
+        "title": "NWA: View Agent Details"
+      },
+      {
+        "command": "nwa.openSettings",
+        "title": "NWA: Open Settings"
+      },
+      {
+        "command": "nwa.previewAgent",
+        "title": "NWA: Preview Agent"
+      },
+      {
+        "command": "nwa.toggleFavorite",
+        "title": "Toggle Favorite",
+        "icon": "$(star)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nwa-sidebar",
+          "title": "NWA",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "nwa-sidebar": [
+        {
+          "id": "nwa-installed",
+          "name": "Installed Agents",
+          "icon": "$(check)",
+          "contextualTitle": "NWA Installed"
+        },
+        {
+          "id": "nwa-available",
+          "name": "Available Agents",
+          "icon": "$(cloud-download)",
+          "contextualTitle": "NWA Available"
+        },
+        {
+          "id": "nwa-claude-initial-context",
+          "name": "Claude Code Context",
+          "icon": "$(cloud-download)",
+          "contextualTitle": "Claude Code Context"
+        },
+        {
+          "id": "nwa-task",
+          "name": "Task",
+          "icon": "$(checklist)",
+          "contextualTitle": "NWA Task"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "nwa-installed",
+        "contents": "No agents installed yet.\n[Open Agent Manager](command:nwa.openPanel)\n[Quick Setup](command:nwa.quickInit)"
+      },
+      {
+        "view": "nwa-claude-initial-context",
+        "contents": "Set up Claude context resources.\n[Init env](command:nwa.initClaudeEnvironment)\n[Init Resouce Claude](command:nwa.initClaudeResource)\n[Graph Obsidian](command:nwa.graphObsidian)"
+      },
+      {
+        "view": "nwa-task",
+        "contents": "Prepare task context.\n[Task](command:nwa.openTaskManager)\n[Fix bug](command:nwa.openFixBugManager)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "nwa.openPanel",
+          "when": "view == nwa-installed || view == nwa-available",
+          "group": "navigation@1"
+        },
+        {
+          "command": "nwa.refreshAgents",
+          "when": "view == nwa-installed || view == nwa-available",
+          "group": "navigation@2"
+        },
+        {
+          "command": "nwa.quickInit",
+          "when": "view == nwa-available",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "nwa.initAgents",
+          "when": "view == nwa-available",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "nwa.updateAgents",
+          "when": "view == nwa-installed",
+          "group": "2_update@1"
+        },
+        {
+          "command": "nwa.removeAgents",
+          "when": "view == nwa-installed",
+          "group": "3_remove@1"
+        },
+        {
+          "command": "nwa.initClaudeEnvironment",
+          "when": "view == nwa-claude-initial-context",
+          "group": "navigation@0"
+        },
+        {
+          "command": "nwa.initClaudeResource",
+          "when": "view == nwa-claude-initial-context",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "nwa.graphObsidian",
+          "when": "view == nwa-claude-initial-context",
+          "group": "1_actions@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nwa.openPanel"
+        },
+        {
+          "command": "nwa.quickInit"
+        },
+        {
+          "command": "nwa.initAgents"
+        },
+        {
+          "command": "nwa.initClaudeResource"
+        },
+        {
+          "command": "nwa.initClaudeEnvironment"
+        },
+        {
+          "command": "nwa.graphObsidian"
+        },
+        {
+          "command": "nwa.openTaskManager"
+        },
+        {
+          "command": "nwa.openFixBugManager"
+        },
+        {
+          "command": "nwa.refreshAgents"
+        },
+        {
+          "command": "nwa.updateAgents"
+        },
+        {
+          "command": "nwa.removeAgents"
+        },
+        {
+          "command": "nwa.viewAgent"
+        },
+        {
+          "command": "nwa.toggleFavorite",
+          "when": "false"
+        },
+        {
+          "command": "nwa.previewAgent",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "nwa.toggleFavorite",
+          "when": "view == nwa-available && viewItem =~ /^agent/",
+          "group": "inline"
+        },
+        {
+          "command": "nwa.toggleFavorite",
+          "when": "view == nwa-available && viewItem =~ /^agent|^favorite-agent/",
+          "group": "1_favorites@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "NWA",
+      "properties": {
+        "nwa.defaultTool": {
+          "type": "string",
+          "enum": [
+            "cursor",
+            "claude-code",
+            "copilot",
+            "aider",
+            "universal"
+          ],
+          "enumDescriptions": [
+            "Cursor - @-mentions and multi-file support",
+            "Claude Code - Native sub-agent support",
+            "GitHub Copilot - copilot-instructions.md",
+            "Aider - conventions.md",
+            "Universal - Works with any tool"
+          ],
+          "default": "cursor",
+          "description": "Default AI tool for agent configuration"
+        },
+        "nwa.defaultFolder": {
+          "type": "string",
+          "default": "",
+          "description": "Custom default folder name (leave empty for tool-specific defaults)"
+        },
+        "nwa.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh agent list when files change"
+        },
+        "nwa.showWelcome": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show welcome message on first use"
+        },
+        "nwa.defaultDepartments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "design",
+              "engineering",
+              "marketing",
+              "product",
+              "project-management",
+              "studio-operations",
+              "testing"
+            ]
+          },
+          "default": [
+            "engineering",
+            "design"
+          ],
+          "description": "Default departments to select"
+        },
+        "nwa.favoriteAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of favorite agent IDs"
+        },
+        "nwa.taskDocumentsFolder": {
+          "type": "string",
+          "default": ".project/docs",
+          "description": "Workspace-relative folder where Task Manager stores markdown documents converted with markitdown"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "compile": "tsc -p ./",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "package": "npm run build && npx @vscode/vsce package --no-dependencies",
+    "publish": "npm run build && npx @vscode/vsce publish --no-dependencies",
+    "publish:ovsx": "npm run build && npx ovsx publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.19.39",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.27.2",
+    "eslint": "^8.x",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "minimatch": "^9.0.3",
+    "playwright": "^1.59.1"
+  },
+  "author": "Patricio Marroquin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patricio0312rev/nwa-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/patricio0312rev/nwa-vscode/issues"
+  },
+  "homepage": "https://github.com/patricio0312rev/nwa-vscode#readme"
+}
