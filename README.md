@@ -1,34 +1,28 @@
 # 🐙 New Workbench Agent for VS Code
 
-> **A visual interface for generating, installing, and managing AI agent workflows across VS Code, Claude Code, Cursor, GitHub Copilot, Aider, and more.**
+> **A visual interface for generating, workflow creating, and managing AI agent across VS Code, Claude Code, Cursor, GitHub Copilot, Aider, and more.**
 
 <p align="center"><img src="nwa-agent.png" alt="" width="450px" height="auto"></p>
 
-New Workbench Agent (NWA) is a VS Code extension for setting up AI-assisted development workflows without manually copying prompts or configuration files. It provides a guided UI for selecting agents, installing tool-specific resources, and managing Claude Code context files from one workspace.
+**A Human-Controlled AI Workbench for Developers, is not built to replace developers.**
+<br/>It is built to give developers full control over how multiple agents think, work, adapt, and deliver.
+
+## ✨ Why does this repo exist?
+
+| Pain Point | How NWA Agent Solves It | Value for Developers |
+|---|---|---|
+| 🤖 Too many multi-agent tools are shallow | NWA Agent brings agents directly into VS Code | Developers can work with AI inside their real coding environment, not through a disconnected automation layer. |
+| 🔒 Most workflows are rigid and hard to customize | Modular agent configuration and reusable resources | Teams can create, adjust, and reuse specialized agents based on each project’s needs. |
+| 🏃 Agents often run from start to finish like a black box | Human-in-the-loop workflow control | Developers can stay involved, guide the process, and make decisions at the right moments. |
+| 🔁 It is hard to change direction while an agent is running | Mid-flow customization and intervention | Developers can pause, refine instructions, switch context, or adjust the agent’s role without restarting everything. |
+| 🧠 Context is scattered and difficult to manage | Project memory and context management | Instructions, resources, and task knowledge stay organized in one workbench. |
+| ⚙️ Developers need speed, but not at the cost of control | Multi-agent coordination with developer oversight | NWA Agent combines AI execution speed with developer judgment, flexibility, and precision. |
 
 ---
 
-## Critical Project Discussions
+## 🪴 Quick demo
 
-Use [GitHub Discussions](https://github.com/b0yblake/New-Workbench-Agent/discussions) as the primary channel for critical project topics, roadmap decisions, feature proposals, implementation direction, and release planning.
-
-If a change affects the extension behavior, Claude resource setup, supported AI tools, installation flow, or public documentation, open or join a discussion before finalizing the change.
-
----
-
-## ✨ Features
-
-- 🎨 **Visual Agent Manager** - Select tools, departments, and agents from a focused UI.
-- 🚀 **42+ Pre-built Agents** - Engineering, Design, Marketing, Testing, Product, Operations, and more.
-- ⚡ **Quick Setup Presets** - Start from common workflows such as Full Stack, Rapid Prototyper, Design-First, and Growth-Focused.
-- 🌲 **Sidebar Integration** - View installed agents, available agents, and Claude Code context resources.
-- 🔄 **Auto-Refresh** - Detect changes to installed agent files automatically.
-- ⚙️ **Custom Selection** - Install only the agents and resources you need.
-- 🛠️ **Multi-Tool Support** - Works with Cursor, Claude Code, GitHub Copilot, Aider, and universal AI workflows.
-- 👁️ **Agent Preview** - Review agent content before installing it.
-- ⭐ **Favorites** - Star frequently used agents for faster access.
-- 🔍 **Search** - Filter agents by name or description.
-- 📚 **Claude Resource Manager** - Initialize Claude Code context resources by selecting files from each layer.
+<img src="@README/demo.gif" alt="" width="100%" height="auto">
 
 ---
 
@@ -96,100 +90,10 @@ Then press `F5` in VS Code to launch the Extension Development Host.
 Initialize Claude Code context resources by selecting files from each layer. You can select one file, several files, or every file, then use the floating **Install** action to create the selected resources in your workspace.
 
 ### Layer 1: Auto-loaded Rules
-
-- `claude.md`
-- `behaviour.md`
-- `SKILL.md`
-- `memory-flush.md`
-
 ### Layer 2: On-demand Docs
-
-- `agents.md`
-- `context-safety.md`
-- `task-routing.md`
-- `behaviour-extended.md`
-- `scaffolding-checkpoint.md`
-
 ### Layer 3: Hot Data
 
-- `today.md`
-- `projects.md`
-- `goals.md`
-- `active-task.md`
-
 `SKILL.md` is installed to `.claude/skills/SKILL.md`. If a previous `SKILL.md` exists there, it is renamed to `SKILL.md-old` before the new file is created.
-
----
-
-## 🏢 Available Agents
-
-### **Design** (5 agents)
-
-- `brand-guardian` - Brand consistency
-- `ui-designer` - Interface design
-- `ux-researcher` - User research
-- `visual-storyteller` - Marketing visuals
-- `whimsy-injector` - Delightful interactions
-
-### **Engineering** (7 agents)
-
-- `ai-engineer` - AI/ML integration
-- `backend-architect` - API design
-- `devops-automator` - CI/CD
-- `frontend-developer` - UI implementation
-- `mobile-app-builder` - iOS/Android
-- `rapid-prototyper` - Fast MVPs
-- `test-writer-fixer` - Testing
-
-### **Marketing** (7 agents)
-
-- `app-store-optimizer` - ASO
-- `content-creator` - Blog/video content
-- `growth-hacker` - Viral loops
-- `instagram-curator` - Instagram strategy
-- `reddit-community-builder` - Reddit engagement
-- `tiktok-strategist` - TikTok marketing
-- `twitter-engager` - Twitter/X
-
-### **Product** (3 agents)
-
-- `feedback-synthesizer` - User feedback
-- `sprint-prioritizer` - Feature prioritization
-- `trend-researcher` - Market trends
-
-### **Project Management** (3 agents)
-
-- `experiment-tracker` - A/B testing
-- `project-shipper` - Launch coordination
-- `studio-producer` - Cross-team coordination
-
-### **Studio Operations** (5 agents)
-
-- `analytics-reporter` - Metrics
-- `finance-tracker` - Budget management
-- `infrastructure-maintainer` - System reliability
-- `legal-compliance-checker` - Privacy/compliance
-- `support-responder` - Customer support
-
-### **Testing** (5 agents)
-
-- `api-tester` - API testing
-- `performance-benchmarker` - Speed optimization
-- `test-results-analyzer` - Test analysis
-- `tool-evaluator` - Tool assessment
-- `workflow-optimizer` - Process optimization
-
----
-
-## 🛠️ Supported AI Tools
-
-| Tool               | Folder         | How It Works                                    |
-| ------------------ | -------------- | ----------------------------------------------- |
-| **Cursor**         | `.cursorrules` | Use `@engineering/backend-architect.md` in chat |
-| **Claude Code**    | `.claude`      | Native sub-agent and context resource support   |
-| **GitHub Copilot** | `.github`      | Auto-loaded from `copilot-instructions.md`      |
-| **Aider**          | `.aider`       | Conventions in `conventions.md`                 |
-| **Universal**      | `.ai`          | Works with any AI tool                          |
 
 ---
 
@@ -218,78 +122,6 @@ All commands are available from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift
 - `New Workbench Agent: Update Agents` - Update installed agents.
 - `New Workbench Agent: Remove Agents` - Remove installed agent resources.
 - `New Workbench Agent: Open Settings` - Open extension settings.
-
----
-
-## 📚 Usage Examples
-
-### With Cursor
-
-After installation, use agents in Cursor:
-
-```text
-@engineering/backend-architect.md Design a REST API for user authentication
-```
-
-### With Claude Code
-
-```bash
-claude-code "Build a login page using the frontend-developer agent"
-```
-
-### With GitHub Copilot
-
-GitHub Copilot automatically uses the instructions from `.github/copilot-instructions.md`.
-
----
-
-## 🔍 Recent Updates
-
-### Agent Preview
-
-Click any agent in the **Available Agents** sidebar to preview its full content before installing. The preview opens in a side panel where you can review the agent's capabilities and decide whether it fits your workflow.
-
-### Favorites
-
-Star your most-used agents for quick access:
-
-1. **From Sidebar**: Click the star icon next to any available agent.
-2. **From Agent Manager**: Click the star next to any agent in the selection list.
-3. **Quick Select**: Use the Favorites section in the Agent Manager to quickly toggle starred agents.
-
-Favorites sync between the sidebar and the Agent Manager webview.
-
-### Search
-
-Use the search bar at the top of the Agent Manager to filter agents by name or description.
-
-### Claude Resource Manager
-
-Use the Claude Resource Manager to install layered Claude Code context files, including root instructions, on-demand docs, hot data files, and `.claude/skills/SKILL.md`.
-
----
-
-## 🎯 Use Cases
-
-**For Solo Developers:**
-
-- Set up a complete AI-assisted development workflow.
-- Get specialized guidance across engineering, product, design, and testing.
-- Ship faster with repeatable agent configurations.
-
-**For Startups:**
-
-- Prototype quickly with specialized agents.
-- Add marketing, growth, and launch support.
-- Coordinate product and engineering work from one workspace.
-
-**For Teams:**
-
-- Standardize AI workflows across a team.
-- Provide reusable context for common development tasks.
-- Onboard new contributors faster.
-
----
 
 ## 🐛 Troubleshooting
 
@@ -329,10 +161,6 @@ Found a bug or have a feature request?
 - 📖 **Documentation**: [GitHub Wiki](https://github.com/b0yblake/New-Workbench-Agent/wiki)
 
 ---
-
-## 🙏 Credits
-
-New Workbench Agent is powered by the existing core agent generation package used by this extension.
 
 ## 📄 License
 
