@@ -72,6 +72,11 @@
         "icon": "$(bug)"
       },
       {
+        "command": "nwa.openWorkflowSettings",
+        "title": "NWA: Workflow Settings",
+        "icon": "$(gear)"
+      },
+      {
         "command": "nwa.refreshAgents",
         "title": "NWA: Refresh Installed Agents",
         "icon": "$(refresh)"
@@ -150,7 +155,7 @@
       },
       {
         "view": "nwa-task",
-        "contents": "Prepare task context.\n[Task](command:nwa.openTaskManager)\n[Fix bug](command:nwa.openFixBugManager)"
+        "contents": "Prepare task context.\n[Task](command:nwa.openTaskManager)\n[Fix bug](command:nwa.openFixBugManager)\n[Settings](command:nwa.openWorkflowSettings)"
       }
     ],
     "menus": {
@@ -225,6 +230,9 @@
         },
         {
           "command": "nwa.openFixBugManager"
+        },
+        {
+          "command": "nwa.openWorkflowSettings"
         },
         {
           "command": "nwa.refreshAgents"

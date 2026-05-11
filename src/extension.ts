@@ -11,6 +11,7 @@ import { initClaudeResourceCommand } from './commands/initClaudeResource';
 import { initClaudeEnvironmentCommand } from './commands/initClaudeEnvironment';
 import { openObsidianGraphCommand } from './commands/openObsidianGraph';
 import { TaskManagerPanel } from './webview/TaskManagerPanel';
+import { WorkflowSettingsPanel } from './features/workflows/WorkflowSettingsPanel';
 import { InstalledAgentsProvider } from './providers/InstalledAgentsProvider';
 import { AvailableAgentsProvider } from './providers/AvailableAgentsProvider';
 import { TaskActionsProvider } from './providers/TaskActionsProvider';
@@ -120,6 +121,12 @@ function registerCommands(
     vscode.commands.registerCommand(COMMANDS.OPEN_FIX_BUG_MANAGER, () => {
       logger.info('Opening Fix Bug Manager');
       TaskManagerPanel.createOrShow(context.extensionUri, configService, 'fix-bug', context.globalStorageUri);
+    }),
+
+    // Open Workflow Settings
+    vscode.commands.registerCommand(COMMANDS.OPEN_WORKFLOW_SETTINGS, () => {
+      logger.info('Opening Workflow Settings');
+      WorkflowSettingsPanel.createOrShow();
     }),
 
     // Refresh Agents

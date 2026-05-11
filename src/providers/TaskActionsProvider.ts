@@ -33,7 +33,8 @@ export class TaskActionsProvider implements vscode.TreeDataProvider<TaskActionTr
   getChildren(): TaskActionTreeItem[] {
     return [
       new TaskActionTreeItem('Task', 'New task context', COMMANDS.OPEN_TASK_MANAGER, 'checklist'),
-      new TaskActionTreeItem('Fix bug', 'Existing code bug context', COMMANDS.OPEN_FIX_BUG_MANAGER, 'bug')
+      new TaskActionTreeItem('Fix bug', 'Existing code bug context', COMMANDS.OPEN_FIX_BUG_MANAGER, 'bug'),
+      new TaskActionTreeItem('Settings', 'Core & workflow settings', COMMANDS.OPEN_WORKFLOW_SETTINGS, 'gear')
     ];
   }
 }
