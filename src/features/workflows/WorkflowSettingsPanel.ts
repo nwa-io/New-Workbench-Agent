@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { WorkflowStorageService } from './WorkflowStorageService';
-import { stringifyWorkflow } from './yaml';
+import { parseWorkflow, stringifyWorkflow } from './yaml';
 import {
   STEP_OPTIONS,
+  WORKFLOW_FILE_VERSION,
+  WorkflowBlock,
   WorkflowFile,
   WorkflowParallelBlock,
   WorkflowStepBlock
@@ -79,6 +81,9 @@ export class WorkflowSettingsPanel {
           break;
         case 'validateWorkflow':
           await this.validateWorkflow(msg.data?.id);
+          break;
+        case 'importWorkflow':
+          await this.importWorkflow();
           break;
         case 'exportWorkflow':
           await this.exportWorkflow(msg.data?.id);
@@ -201,6 +206,63 @@ export class WorkflowSettingsPanel {
     return `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
   }
 
+  private newWorkflowId(): string {
+    return `wf_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  }
+
+  private workflowNameSlug(name: string): string {
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return base || 'workflow';
+  }
+
+  private makeUniqueWorkflowName(name: string): string {
+    const baseName = name.trim() || 'Imported Workflow';
+    const existingSlugs = new Set(this.workflows.map(w => this.workflowNameSlug(w.name)));
+    if (!existingSlugs.has(this.workflowNameSlug(baseName))) {
+      return baseName;
+    }
+
+    let suffix = 2;
+    let candidate = `${baseName} ${suffix}`;
+    while (existingSlugs.has(this.workflowNameSlug(candidate))) {
+      suffix++;
+      candidate = `${baseName} ${suffix}`;
+    }
+    return candidate;
+  }
+
+  private cloneImportedBlocks(blocks: WorkflowBlock[]): WorkflowBlock[] {
+    return blocks.map(block => {
+      if (block.kind === 'step') {
+        return {
+          ...block,
+          id: this.newBlockId(),
+          status: 'idle'
+        };
+      }
+
+      return {
+        ...block,
+        id: this.newBlockId(),
+        status: 'idle',
+        children: block.children.map(child => ({
+          ...child,
+          id: this.newBlockId(),
+          status: 'idle'
+        }))
+      };
+    });
+  }
+
+  private prepareImportedWorkflow(wf: WorkflowFile): WorkflowFile {
+    return {
+      version: WORKFLOW_FILE_VERSION,
+      id: this.newWorkflowId(),
+      name: this.makeUniqueWorkflowName(wf.name),
+      blocks: this.cloneImportedBlocks(wf.blocks)
+    };
+  }
+
   private async addStep(workflowId: string, locator: Locator): Promise<void> {
     const wf = this.findWorkflow(workflowId);
     if (!wf) {
@@ -298,6 +360,29 @@ export class WorkflowSettingsPanel {
     vscode.window.showInformationMessage(`Workflow "${wf.name}" validated and saved to ${filePath}`);
   }
 
+  private async importWorkflow(): Promise<void> {
+    const selected = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: { ['YAML']: ['yaml', 'yml'] },
+      openLabel: 'Import workflow',
+      title: 'Import workflow'
+    });
+    const source = selected?.[0];
+    if (!source) {
+      return;
+    }
+
+    const content = await fs.readFile(source.fsPath, 'utf8');
+    const imported = this.prepareImportedWorkflow(parseWorkflow(content));
+    const filePath = await this.storage.saveWorkflow(imported);
+    this.workflows.push(imported);
+    this.activeId = imported.id;
+    this.postState();
+    vscode.window.showInformationMessage(`Workflow "${imported.name}" imported to ${filePath}`);
+  }
+
   private async exportWorkflow(id: string): Promise<void> {
     const wf = this.findWorkflow(id);
     if (!wf) {
@@ -310,7 +395,7 @@ export class WorkflowSettingsPanel {
       : vscode.Uri.file(defaultName);
     const target = await vscode.window.showSaveDialog({
       defaultUri,
-      filters: { 'YAML': ['yaml', 'yml'] },
+      filters: { ['YAML']: ['yaml', 'yml'] },
       saveLabel: 'Export workflow'
     });
     if (!target) {
@@ -331,4 +416,3 @@ export class WorkflowSettingsPanel {
     }
   }
 }
-

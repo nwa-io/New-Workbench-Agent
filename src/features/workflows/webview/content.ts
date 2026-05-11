@@ -36,6 +36,7 @@ export function getWorkflowSettingsHtml(nonce: string): string {
             <div id="canvas-actions" class="canvas-actions" style="visibility:hidden">
               <button id="add-parallel" class="btn secondary">Parallel group</button>
               <button id="validate-workflow" class="btn">Validate</button>
+              <button id="import-workflow" class="btn secondary">Import</button>
               <button id="export-workflow" class="btn secondary">Export</button>
             </div>
           </div>

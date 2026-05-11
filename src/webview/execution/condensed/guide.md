@@ -17,5 +17,5 @@ Keep implementation decisions aligned with imported documents, selected Figma sc
 - Treat the imported documents as the source of truth for requirements and constraints.
 - Match the selected Figma screens when changing UI or user flows.
 - Use Jira title, description, and comments to resolve acceptance details and edge cases.
-- Keep the change scoped to the task or bug described here.
+- Keep the change scoped to the item described here.
 - Verify behavior with the most relevant build, lint, or manual checks available in this repository.

@@ -46,6 +46,7 @@ export interface WorkflowFile {
   version: number;
   id: string;
   name: string;
+  fileName?: string;
   blocks: WorkflowBlock[];
 }
 

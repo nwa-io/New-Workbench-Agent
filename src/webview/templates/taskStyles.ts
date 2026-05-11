@@ -177,7 +177,195 @@ h2 {
 }
 
 .create-form {
+  display: grid;
+  gap: 18px;
   min-width: 0;
+}
+
+.create-stepper {
+  display: grid;
+  position: relative;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  overflow: hidden;
+  padding: 18px;
+  margin-bottom: 2px;
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.05) 0 10%, transparent 10% 22%, rgba(255, 255, 255, 0.035) 22% 34%, transparent 34% 100%),
+    #1d1a2d;
+  border: 1px solid rgba(176, 184, 214, 0.16);
+  border-radius: 8px;
+}
+
+.create-stepper-step {
+  display: grid;
+  grid-template-rows: 7px auto;
+  gap: 14px;
+  min-width: 0;
+  padding: 0;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+
+.create-stepper-step * {
+  cursor: pointer;
+}
+
+.create-stepper-step:hover:not(:disabled) {
+  background: transparent;
+  transform: translateY(-1px);
+}
+
+.create-stepper-step:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 6px;
+}
+
+.create-stepper-track {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  background: #c8cedc;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.create-stepper-step.not-fill .create-stepper-track {
+  background: #c8cedc;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.create-stepper-step.on-select .create-stepper-track,
+.create-stepper-step.active .create-stepper-track {
+  background: #6d4df4;
+  box-shadow: 0 0 0 1px rgba(109, 77, 244, 0.28), 0 0 18px rgba(109, 77, 244, 0.32);
+}
+
+.create-stepper-step.fill .create-stepper-track,
+.create-stepper-step.complete .create-stepper-track {
+  background: #36d99a;
+  box-shadow: 0 0 0 1px rgba(54, 217, 154, 0.22), 0 0 18px rgba(54, 217, 154, 0.28);
+}
+
+.create-stepper-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.create-stepper-marker {
+  position: relative;
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  color: #101624;
+  background: transparent;
+  border: 3px solid #c8cedc;
+  border-radius: 999px;
+  font-size: 0;
+  font-weight: 700;
+}
+
+.create-stepper-step.not-fill .create-stepper-marker {
+  background: transparent;
+  border-color: #c8cedc;
+}
+
+.create-stepper-step.on-select .create-stepper-marker,
+.create-stepper-step.active .create-stepper-marker {
+  background: #6d4df4;
+  border-color: #6d4df4;
+  box-shadow: 0 0 0 4px rgba(109, 77, 244, 0.15);
+}
+
+.create-stepper-step.on-select .create-stepper-marker::after,
+.create-stepper-step.active .create-stepper-marker::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.create-stepper-step.fill .create-stepper-marker,
+.create-stepper-step.complete .create-stepper-marker {
+  background: #22c55e;
+  border-color: #22c55e;
+}
+
+.create-stepper-step.fill .create-stepper-marker::before,
+.create-stepper-step.complete .create-stepper-marker::before {
+  content: "";
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid #102116;
+  border-bottom: 2px solid #102116;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.create-stepper-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.create-stepper-title {
+  overflow: hidden;
+  color: rgba(246, 247, 251, 0.92);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-stepper-step.not-fill .create-stepper-title {
+  color: rgba(246, 247, 251, 0.82);
+}
+
+.create-stepper-step.on-select .create-stepper-title,
+.create-stepper-step.active .create-stepper-title {
+  color: #ffffff;
+}
+
+.create-stepper-step.fill .create-stepper-title,
+.create-stepper-step.complete .create-stepper-title {
+  color: #ffffff;
+}
+
+.create-stepper-description {
+  overflow: hidden;
+  color: rgba(225, 229, 240, 0.62);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-stepper-step.not-fill .create-stepper-description {
+  color: rgba(225, 229, 240, 0.54);
+}
+
+.create-stepper-step.on-select .create-stepper-description,
+.create-stepper-step.active .create-stepper-description {
+  color: rgba(216, 207, 255, 0.9);
+}
+
+.create-stepper-step.fill .create-stepper-description {
+  color: rgba(210, 255, 233, 0.78);
+}
+
+.create-step-panel {
+  min-height: 250px;
 }
 
 .item-type-switch {
@@ -217,6 +405,206 @@ h2 {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.workflow-layout-preview {
+  min-height: 360px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--vscode-editor-background);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 1px solid rgba(150, 150, 170, 0.2);
+  border-radius: 8px;
+}
+
+.workflow-layout-canvas {
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+
+.workflow-layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.workflow-layout-title {
+  max-width: 55%;
+  overflow: hidden;
+  color: var(--vscode-foreground);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-layout-file {
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-layout-body {
+  display: flex;
+  min-height: 300px;
+  justify-content: center;
+  overflow: auto;
+  padding: 32px 24px;
+}
+
+.workflow-layout-preview .tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-height: 200px;
+}
+
+.workflow-layout-preview .tree-empty {
+  margin: auto;
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+}
+
+.workflow-layout-preview .tree-empty.compact {
+  min-width: 120px;
+  padding: 24px 10px;
+  text-align: center;
+}
+
+.workflow-layout-preview .block-wrap {
+  position: relative;
+  display: flex;
+  width: 140px;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+}
+
+.workflow-layout-preview .block-card {
+  position: relative;
+  display: flex;
+  width: 110px;
+  height: 110px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 45, 48, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.workflow-layout-preview .block-card:hover {
+  border-color: var(--vscode-focusBorder);
+  transform: translateY(-1px);
+}
+
+.workflow-layout-preview .block-card.status-running {
+  border-color: var(--vscode-progressBar-background);
+}
+
+.workflow-layout-preview .block-card.status-success {
+  border-color: #4caf50;
+}
+
+.workflow-layout-preview .block-card.status-failed {
+  border-color: var(--vscode-errorForeground);
+}
+
+.workflow-layout-preview .block-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.workflow-layout-preview .block-label {
+  max-width: 140px;
+  overflow: hidden;
+  margin-top: 14px;
+  color: var(--vscode-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-layout-preview .block-sublabel {
+  max-width: 140px;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-layout-preview .parallel-group {
+  position: relative;
+  display: flex;
+  min-width: 200px;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 14px 16px;
+  background: rgba(45, 45, 48, 0.4);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+}
+
+.workflow-layout-preview .parallel-group:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.workflow-layout-preview .parallel-group.status-running {
+  border-color: var(--vscode-progressBar-background);
+}
+
+.workflow-layout-preview .parallel-group.status-success {
+  border-color: #4caf50;
+}
+
+.workflow-layout-preview .parallel-group.status-failed {
+  border-color: var(--vscode-errorForeground);
+}
+
+.workflow-layout-preview .parallel-header {
+  margin-bottom: 10px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.workflow-layout-preview .parallel-children {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 28px;
+}
+
+.workflow-layout-connector {
+  width: 0;
+  height: 32px;
+  flex-shrink: 0;
+  border-left: 1px dashed rgba(255, 255, 255, 0.35);
 }
 
 .workflow-mock {
@@ -947,7 +1335,8 @@ h2 {
   font-weight: 600;
 }
 
-.form-field input {
+.form-field input,
+.form-field select {
   width: 100%;
   padding: 10px 11px;
   color: var(--vscode-input-foreground);
@@ -959,7 +1348,12 @@ h2 {
   outline: none;
 }
 
-.form-field input:focus {
+.form-field select {
+  min-height: 38px;
+}
+
+.form-field input:focus,
+.form-field select:focus {
   border-color: var(--vscode-focusBorder);
   box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
@@ -1232,6 +1626,16 @@ h2 {
 
   .create-grid {
     grid-template-columns: 1fr;
+  }
+
+  .create-stepper {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .create-stepper-step {
+    grid-template-rows: 7px auto;
   }
 
   .task-block {

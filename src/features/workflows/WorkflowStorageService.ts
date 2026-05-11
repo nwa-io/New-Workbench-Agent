@@ -51,7 +51,10 @@ export class WorkflowStorageService {
     for (const f of files) {
       try {
         const src = await fs.readFile(path.join(dir, f), 'utf8');
-        result.push(parseWorkflow(src));
+        result.push({
+          ...parseWorkflow(src),
+          fileName: f
+        });
       } catch (err) {
         // skip unreadable files; UI will show what we can load
       }

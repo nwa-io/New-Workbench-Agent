@@ -217,6 +217,9 @@ document.getElementById('canvas-title').addEventListener('change', e => {
 document.getElementById('validate-workflow').addEventListener('click', () => {
   send('validateWorkflow', { id: state.activeId });
 });
+document.getElementById('import-workflow').addEventListener('click', () => {
+  send('importWorkflow', {});
+});
 document.getElementById('export-workflow').addEventListener('click', () => {
   send('exportWorkflow', { id: state.activeId });
 });

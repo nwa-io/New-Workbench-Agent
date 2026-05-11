@@ -148,7 +148,7 @@ export class TaskManagerPanel {
   }
 
   private async handleSetTaskMode(mode?: TaskManagerMode): Promise<void> {
-    if (mode !== 'task' && mode !== 'fix-bug') {
+    if (mode !== 'task' && mode !== 'fix-bug' && mode !== 'analysis') {
       return;
     }
 
@@ -160,11 +160,11 @@ export class TaskManagerPanel {
     itemId?: string,
     itemType?: TaskItemType
   ): Promise<void> {
-    if (mode === 'task' || mode === 'fix-bug') {
+    if (mode === 'task' || mode === 'fix-bug' || mode === 'analysis') {
       this.mode = mode;
     }
 
-    if (itemId && (itemType === 'task' || itemType === 'bug')) {
+    if (itemId && (itemType === 'task' || itemType === 'bug' || itemType === 'analysis')) {
       this.currentItemId = itemId;
       this.currentItemType = itemType;
     } else {
@@ -214,7 +214,7 @@ export class TaskManagerPanel {
         command: 'taskItemCreateComplete',
         data: result
       });
-      vscode.window.showInformationMessage(`Created ${result.item.type === 'bug' ? 'bug' : 'task'} ${result.item.id}`);
+      vscode.window.showInformationMessage(`Created ${this.getTaskItemTypeLabel(result.item.type)} ${result.item.id}`);
     } catch (error) {
       logger.error('Error creating task item', error as Error);
       this._panel.webview.postMessage({
@@ -260,7 +260,7 @@ export class TaskManagerPanel {
         command: 'taskItemDeleteComplete',
         data: result
       });
-      vscode.window.showInformationMessage(`Deleted ${request.type === 'bug' ? 'bug' : 'task'} ${request.id}`);
+      vscode.window.showInformationMessage(`Deleted ${this.getTaskItemTypeLabel(request.type)} ${request.id}`);
     } catch (error) {
       logger.error('Error deleting task item', error as Error);
       this._panel.webview.postMessage({
@@ -759,6 +759,14 @@ export class TaskManagerPanel {
       logger.error('Error opening task document', error as Error);
       vscode.window.showErrorMessage(`Failed to open task document: ${(error as Error).message}`);
     }
+  }
+
+  private getTaskItemTypeLabel(type: TaskItemType): string {
+    if (type === 'bug') {
+      return 'bug';
+    }
+
+    return type === 'analysis' ? 'analysis' : 'task';
   }
 
   public dispose(): void {

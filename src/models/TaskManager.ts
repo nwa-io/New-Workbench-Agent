@@ -1,6 +1,8 @@
-export type TaskManagerMode = 'task' | 'fix-bug';
+import type { WorkflowFile } from '../features/workflows/types';
 
-export type TaskItemType = 'task' | 'bug';
+export type TaskManagerMode = 'task' | 'fix-bug' | 'analysis';
+
+export type TaskItemType = 'task' | 'bug' | 'analysis';
 
 export type TaskManagerView = 'list' | 'create' | 'detail';
 
@@ -78,6 +80,7 @@ export interface TaskManagerState {
   documentsFolder: string;
   documents: TaskDocument[];
   nodes: TaskProcessNode[];
+  workflows: WorkflowFile[];
   figma?: TaskFigmaConnection;
   jira?: TaskJiraConnection;
 }
@@ -149,6 +152,7 @@ export interface TaskJiraReadRequest {
 export interface TaskItemCreateRequest {
   id: string;
   type: TaskItemType;
+  workflowId?: string;
 }
 
 export interface TaskItemSelectRequest {

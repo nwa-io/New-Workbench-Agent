@@ -10,6 +10,7 @@ import { promisify } from 'util';
 import { ConfigService } from './ConfigService';
 import { FileSystemService } from './FileSystemService';
 import { compressAgentText } from '../features/compression';
+import { WorkflowStorageService } from '../features/workflows/WorkflowStorageService';
 import { logger } from '../utils/logger';
 import {
   TaskDocument,
@@ -52,15 +53,21 @@ const FIGMA_CACHE_SCHEMA_VERSION = 1;
 const JIRA_CACHE_PREFIX = 'agentkit:jira:';
 const TASK_ITEM_FOLDERS: Record<TaskItemType, string> = {
   task: 'task',
-  bug: 'bug'
+  bug: 'bug',
+  analysis: 'analysis'
 };
 const TASK_TYPE_TO_MODE: Record<TaskItemType, TaskManagerMode> = {
   task: 'task',
-  bug: 'fix-bug'
+  bug: 'fix-bug',
+  analysis: 'analysis'
 };
 
 function getTaskItemTypeForMode(mode: TaskManagerMode): TaskItemType {
-  return mode === 'fix-bug' ? 'bug' : 'task';
+  if (mode === 'fix-bug') {
+    return 'bug';
+  }
+
+  return mode === 'analysis' ? 'analysis' : 'task';
 }
 
 interface MarkitdownCandidate {
@@ -94,6 +101,7 @@ export class TaskManagerService {
   private fileSystemService: FileSystemService;
   private storageUri?: vscode.Uri;
   private extensionUri?: vscode.Uri;
+  private workflowStorage = new WorkflowStorageService();
   private currentItem?: TaskManagerItem;
   private figmaConnection?: TaskFigmaConnection;
   private jiraConnection?: TaskJiraConnection;
@@ -119,6 +127,7 @@ export class TaskManagerService {
     itemReference?: { itemId?: string; itemType?: TaskItemType }
   ): Promise<TaskManagerState> {
     const workspaceFolder = await this.fileSystemService.getWorkspaceFolder();
+    const workflows = await this.workflowStorage.listWorkflows();
 
     if (!workspaceFolder) {
       return {
@@ -128,6 +137,7 @@ export class TaskManagerService {
         documentsFolder: this.getDocumentsRelativeFolder(),
         documents: [],
         nodes: this.getProcessNodes('Unknown', 'Missing'),
+        workflows,
         figma: undefined,
         jira: undefined
       };
@@ -166,6 +176,7 @@ export class TaskManagerService {
         loadedFigmaConnection,
         loadedJiraConnection
       ),
+      workflows,
       figma: loadedFigmaConnection,
       jira: loadedJiraConnection
     };
@@ -621,7 +632,7 @@ export class TaskManagerService {
       '- Treat the imported documents as the source of truth for requirements and constraints.',
       '- Match the selected Figma screens when changing UI or user flows.',
       '- Use Jira title, description, and comments to resolve acceptance details and edge cases.',
-      '- Keep the change scoped to the task or bug described here.',
+      '- Keep the change scoped to the item described here.',
       '- Verify behavior with the most relevant build, lint, or manual checks available in this repository.'
     ].join('\n');
   }
@@ -638,7 +649,9 @@ export class TaskManagerService {
   ): string {
     const objective = mode === 'fix-bug'
       ? '- Use this condensed context to diagnose and fix the bug in the codebase.'
-      : '- Use this condensed context to implement the task in the codebase.';
+      : mode === 'analysis'
+        ? '- Use this condensed context to analyze the codebase, requirements, and implementation options.'
+        : '- Use this condensed context to implement the task in the codebase.';
     const content = guide
       .replace(/\r/g, '')
       .replace('- Use this condensed context to implement the task in the codebase.', objective)
@@ -740,7 +753,7 @@ export class TaskManagerService {
       return [
         '## Figma Screens To Match',
         `File: ${this.figmaConnection.fileName}`,
-        'No Figma nodes are selected for this task or bug.'
+        'No Figma nodes are selected for this item.'
       ].join('\n');
     }
 
@@ -764,7 +777,7 @@ export class TaskManagerService {
     if (nodes.length === 0) {
       return [
         `File: ${figmaConnection.fileName}`,
-        'No Figma nodes are selected for this task or bug.'
+        'No Figma nodes are selected for this item.'
       ].join('\n');
     }
 
@@ -1567,7 +1580,7 @@ export class TaskManagerService {
     const itemType = itemReference?.itemType || this.currentItem?.type || getTaskItemTypeForMode(mode);
 
     if (!itemId) {
-      throw new Error('Create or select a task or bug item before running this step.');
+      throw new Error('Create or select an item before running this step.');
     }
 
     const item = await this.getTaskItem(workspaceFolder, itemType, itemId);
@@ -1900,18 +1913,18 @@ export class TaskManagerService {
   }
 
   private normalizeTaskItemType(type: TaskItemType): TaskItemType {
-    if (type === 'task' || type === 'bug') {
+    if (type === 'task' || type === 'bug' || type === 'analysis') {
       return type;
     }
 
-    throw new Error('Choose either task or bug.');
+    throw new Error('Choose task, bug, or analysis.');
   }
 
   private normalizeTaskItemId(id: string): string {
     const trimmedId = String(id || '').trim();
 
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(trimmedId) || trimmedId === '.' || trimmedId === '..') {
-      throw new Error('Use a task or bug ID with letters, numbers, dots, underscores, or dashes only.');
+      throw new Error('Use an item name with letters, numbers, dots, underscores, or dashes only.');
     }
 
     return trimmedId;
@@ -1922,7 +1935,11 @@ export class TaskManagerService {
   }
 
   private getTaskItemTypeLabel(type: TaskItemType): string {
-    return type === 'bug' ? 'Bug' : 'Task';
+    if (type === 'bug') {
+      return 'Bug';
+    }
+
+    return type === 'analysis' ? 'Analysis' : 'Task';
   }
 
   private getProjectTypeFolderUri(workspaceFolder: vscode.Uri, type: TaskItemType): vscode.Uri {
