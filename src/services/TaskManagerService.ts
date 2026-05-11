@@ -9,6 +9,7 @@ import { createRequire } from 'module';
 import { promisify } from 'util';
 import { ConfigService } from './ConfigService';
 import { FileSystemService } from './FileSystemService';
+import { compressAgentText } from '../features/compression';
 import { logger } from '../utils/logger';
 import {
   TaskDocument,
@@ -1699,9 +1700,14 @@ export class TaskManagerService {
     item: TaskManagerItem,
     content: string
   ): Promise<void> {
+    const { compressed, before, after, savedPercent } = compressAgentText(content);
+    this.taskMarkdownContentByItem[this.getTaskItemKey(item)] = compressed;
+    if (before > after) {
+      logger.debug(`Compressed task markdown for ${item.id}: ${before} → ${after} chars (-${savedPercent.toFixed(1)}%)`);
+    }
     await vscode.workspace.fs.createDirectory(this.getTaskItemFolderUri(workspaceFolder, item.type, item.id));
     const markdownUri = this.getTaskItemMarkdownUri(workspaceFolder, item.type, item.id);
-    await vscode.workspace.fs.writeFile(markdownUri, Buffer.from(content.endsWith('\n') ? content : `${content}\n`, 'utf8'));
+    await vscode.workspace.fs.writeFile(markdownUri, Buffer.from(compressed.endsWith('\n') ? compressed : `${compressed}\n`, 'utf8'));
   }
 
   private async ensureTaskMarkdownExists(workspaceFolder: vscode.Uri, item: TaskManagerItem): Promise<void> {
