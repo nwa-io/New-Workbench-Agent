@@ -18,7 +18,61 @@ export function getWorkflowSettingsHtml(nonce: string): string {
     </div>
 
     <div id="panel-core" class="tab-panel active">
-      <div class="core-empty">Core settings — coming later.</div>
+      <div class="core-settings-layout">
+        <nav class="settings-summary" aria-label="Core settings summary">
+          <div class="summary-kicker">NWA Settings</div>
+          <h1>Core settings</h1>
+          <p>Manage shared integrations and workspace save paths used by NWA task workflows.</p>
+          <a class="summary-link active" href="#core-integration" data-core-nav="core-integration">
+            <span>Integration</span>
+            <small>Figma token, Claude CLI, Codex CLI</small>
+          </a>
+          <a class="summary-link" href="#core-save-path" data-core-nav="core-save-path">
+            <span>Save Path</span>
+            <small>Default workspace paths</small>
+          </a>
+        </nav>
+
+        <main class="settings-main" aria-label="Core settings">
+          <section id="core-integration" class="settings-section">
+            <div class="section-heading">
+              <p class="section-kicker">Integration</p>
+              <h2>Figma access token</h2>
+              <p>Save a personal access token for Figma sync features. The token is stored in VS Code secret storage and is never rendered back into the page.</p>
+            </div>
+            <div class="settings-field">
+              <label for="figma-access-token">Token</label>
+              <div class="secret-input-row">
+                <input id="figma-access-token" type="password" autocomplete="off" placeholder="Paste Figma access token" />
+                <button id="save-figma-token" class="btn" type="button">Save</button>
+                <button id="clear-figma-token" class="btn secondary" type="button">Clear</button>
+              </div>
+              <p id="figma-token-status" class="field-status">Loading token status...</p>
+            </div>
+            <div class="cli-settings">
+              <div class="cli-settings-header">
+                <div>
+                  <h3>CLI authentication</h3>
+                  <p>Check whether local coding CLIs are installed and signed in.</p>
+                </div>
+                <button id="refresh-cli-status" class="btn secondary" type="button">Refresh</button>
+              </div>
+              <div id="cli-status-list" class="cli-status-list"></div>
+              <p id="cli-status-status" class="field-status"></p>
+            </div>
+          </section>
+
+          <section id="core-save-path" class="settings-section">
+            <div class="section-heading">
+              <p class="section-kicker">Save Path</p>
+              <h2>Default save paths</h2>
+              <p>Review the workspace-relative paths NWA uses when it creates task data, workflow YAML, Figma cache files, and generated markdown.</p>
+            </div>
+            <div id="save-path-list" class="save-path-list"></div>
+            <p id="save-path-status" class="field-status"></p>
+          </section>
+        </main>
+      </div>
     </div>
 
     <div id="panel-workflows" class="tab-panel">

@@ -1,6 +1,7 @@
 export const workflowScript = `
 const vscode = acquireVsCodeApi();
 let state = { workflows: [], activeId: null, selectedLocator: null };
+let coreSettings = { hasFigmaToken: false, savePaths: [], cliStatuses: [] };
 
 const STEP_ICONS = {
   collect_document: '📄',
@@ -21,6 +22,216 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[c]);
+}
+
+function setCoreStatus(id, message, isError) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  el.textContent = message || '';
+  el.classList.toggle('error', Boolean(isError));
+}
+
+function setFigmaTokenStatus() {
+  const status = coreSettings.hasFigmaToken
+    ? 'Figma token is saved in VS Code secret storage.'
+    : 'No Figma token is saved.';
+  setCoreStatus('figma-token-status', status, false);
+}
+
+function renderSavePathList() {
+  const list = document.getElementById('save-path-list');
+  if (!list) {
+    return;
+  }
+  if (!Array.isArray(coreSettings.savePaths) || coreSettings.savePaths.length === 0) {
+    list.innerHTML = '<p class="field-status">No save paths are available.</p>';
+    return;
+  }
+
+  list.innerHTML = coreSettings.savePaths.map(pathSetting => {
+    const editable = Boolean(pathSetting.editable);
+    const readonlyAttr = editable ? '' : ' readonly';
+    const configMeta = pathSetting.configKey
+      ? \`<p class="save-path-meta">Config key: <code>\${escapeHtml(pathSetting.configKey)}</code></p>\`
+      : '';
+    const actions = editable
+      ? \`
+        <button class="btn" type="button" data-save-path-action="save" data-save-path-id="\${escapeHtml(pathSetting.id)}">Save</button>
+        <button class="btn secondary" type="button" data-save-path-action="reset" data-save-path-id="\${escapeHtml(pathSetting.id)}">Reset</button>
+      \`
+      : '';
+
+    return \`
+      <div class="save-path-row">
+        <label class="save-path-title" for="save-path-\${escapeHtml(pathSetting.id)}">\${escapeHtml(pathSetting.label)}</label>
+        <p class="save-path-description">\${escapeHtml(pathSetting.description)}</p>
+        <div class="save-path-control">
+          <input id="save-path-\${escapeHtml(pathSetting.id)}" data-save-path-input="\${escapeHtml(pathSetting.id)}" type="text" value="\${escapeHtml(pathSetting.value)}"\${readonlyAttr} />
+          \${actions}
+        </div>
+        <p class="save-path-meta">Default: <code>\${escapeHtml(pathSetting.defaultValue)}</code></p>
+        \${configMeta}
+      </div>
+    \`;
+  }).join('');
+}
+
+function renderCoreSettings() {
+  setFigmaTokenStatus();
+  renderCliStatusList();
+  renderSavePathList();
+}
+
+function getCliCardClass(status) {
+  if (!status.installed) {
+    return 'error';
+  }
+
+  return status.authenticated ? 'success' : 'warning';
+}
+
+function getCliStatusLabel(status) {
+  if (!status.installed) {
+    return 'Not installed';
+  }
+
+  return status.authenticated ? 'Authenticated' : 'Needs auth';
+}
+
+function renderCliStatusList() {
+  const list = document.getElementById('cli-status-list');
+  if (!list) {
+    return;
+  }
+
+  if (!Array.isArray(coreSettings.cliStatuses) || coreSettings.cliStatuses.length === 0) {
+    list.innerHTML = '<p class="field-status">CLI status is not available.</p>';
+    return;
+  }
+
+  list.innerHTML = coreSettings.cliStatuses.map(status => {
+    const cardClass = getCliCardClass(status);
+    const version = status.version ? \`<p class="cli-status-meta">\${escapeHtml(status.version)}</p>\` : '';
+    const message = status.message ? \`<p class="cli-status-message">\${escapeHtml(status.message)}</p>\` : '';
+    const actions = !status.installed
+      ? \`<button class="btn" type="button" data-cli-action="install" data-cli-id="\${escapeHtml(status.id)}">Run Init env</button>\`
+      : status.authenticated
+        ? ''
+        : \`<button class="btn" type="button" data-cli-action="authenticate" data-cli-id="\${escapeHtml(status.id)}">Authenticate</button>\`;
+    const actionHtml = actions
+      ? \`<div class="cli-status-actions">\${actions}</div>\`
+      : '';
+
+    return \`
+      <div class="cli-status-card \${cardClass}">
+        <div class="cli-status-top">
+          <div>
+            <p class="cli-status-title">\${escapeHtml(status.label)}</p>
+            \${version}
+          </div>
+          <span class="status-pill \${cardClass}">\${escapeHtml(getCliStatusLabel(status))}</span>
+        </div>
+        \${message}
+        \${actionHtml}
+      </div>
+    \`;
+  }).join('');
+}
+
+function getSavePathInputValue(pathId) {
+  const input = document.querySelector(\`[data-save-path-input="\${CSS.escape(pathId)}"]\`);
+  return input ? input.value : '';
+}
+
+function setActiveCoreNav(sectionId) {
+  document.querySelectorAll('[data-core-nav]').forEach(link => {
+    link.classList.toggle('active', link.dataset.coreNav === sectionId);
+  });
+}
+
+function bindCoreSettings() {
+  const saveTokenButton = document.getElementById('save-figma-token');
+  const clearTokenButton = document.getElementById('clear-figma-token');
+  const refreshCliButton = document.getElementById('refresh-cli-status');
+
+  if (saveTokenButton) {
+    saveTokenButton.addEventListener('click', () => {
+      const input = document.getElementById('figma-access-token');
+      const token = input ? input.value : '';
+      if (!token.trim()) {
+        setCoreStatus('figma-token-status', 'Paste a Figma access token before saving.', true);
+        return;
+      }
+      send('saveFigmaToken', { token });
+      setCoreStatus('figma-token-status', 'Saving Figma token...', false);
+    });
+  }
+
+  if (clearTokenButton) {
+    clearTokenButton.addEventListener('click', () => {
+      send('clearFigmaToken', {});
+      setCoreStatus('figma-token-status', 'Clearing Figma token...', false);
+    });
+  }
+
+  if (refreshCliButton) {
+    refreshCliButton.addEventListener('click', () => {
+      send('refreshCliStatus', {});
+      setCoreStatus('cli-status-status', 'Refreshing CLI status...', false);
+    });
+  }
+
+  document.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : event.target.parentElement;
+    if (!target) {
+      return;
+    }
+
+    const navLink = target.closest('[data-core-nav]');
+    if (navLink) {
+      const section = document.getElementById(navLink.dataset.coreNav);
+      if (section) {
+        event.preventDefault();
+        setActiveCoreNav(navLink.dataset.coreNav);
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    const actionButton = target.closest('[data-save-path-action]');
+    if (actionButton) {
+      const pathId = actionButton.dataset.savePathId;
+      if (actionButton.dataset.savePathAction === 'save') {
+        send('saveTaskDocumentsFolder', { value: getSavePathInputValue(pathId) });
+        setCoreStatus('save-path-status', 'Saving path...', false);
+        return;
+      }
+
+      if (actionButton.dataset.savePathAction === 'reset') {
+        send('resetTaskDocumentsFolder', {});
+        setCoreStatus('save-path-status', 'Resetting path...', false);
+      }
+      return;
+    }
+
+    const cliButton = target.closest('[data-cli-action]');
+    if (!cliButton) {
+      return;
+    }
+
+    if (cliButton.dataset.cliAction === 'install') {
+      send('installCli', { id: cliButton.dataset.cliId });
+      setCoreStatus('cli-status-status', 'Starting Init env...', false);
+      return;
+    }
+
+    if (cliButton.dataset.cliAction === 'authenticate') {
+      send('authenticateCli', { id: cliButton.dataset.cliId });
+      setCoreStatus('cli-status-status', 'Opening authentication terminal...', false);
+    }
+  });
 }
 
 function activeWorkflow() {
@@ -260,6 +471,8 @@ document.querySelectorAll('.tab').forEach(t => {
   });
 });
 
+bindCoreSettings();
+
 window.addEventListener('message', e => {
   const msg = e.data;
   if (msg.command === 'setState') {
@@ -279,6 +492,19 @@ window.addEventListener('message', e => {
       state.selectedLocator = null;
     }
     render();
+  } else if (msg.command === 'setCoreSettings') {
+    coreSettings = msg.data || coreSettings;
+    renderCoreSettings();
+  } else if (msg.command === 'coreSettingsSaved') {
+    coreSettings = msg.data || coreSettings;
+    renderCoreSettings();
+    const input = document.getElementById('figma-access-token');
+    if (input && msg.statusId === 'figma-token-status') {
+      input.value = '';
+    }
+    setCoreStatus(msg.statusId || 'save-path-status', msg.message || 'Settings saved.', false);
+  } else if (msg.command === 'coreSettingsError') {
+    setCoreStatus(msg.statusId || 'save-path-status', msg.message || 'Settings update failed.', true);
   }
 });
 

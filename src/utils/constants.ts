@@ -9,7 +9,6 @@ export const COMMANDS = {
   INIT_CLAUDE_ENVIRONMENT: 'nwa.initClaudeEnvironment',
   GRAPH_OBSIDIAN: 'nwa.graphObsidian',
   OPEN_TASK_MANAGER: 'nwa.openTaskManager',
-  OPEN_FIX_BUG_MANAGER: 'nwa.openFixBugManager',
   OPEN_WORKFLOW_SETTINGS: 'nwa.openWorkflowSettings',
   REFRESH_AGENTS: 'nwa.refreshAgents',
   UPDATE_AGENTS: 'nwa.updateAgents',

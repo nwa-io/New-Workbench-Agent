@@ -1,17 +1,5 @@
 import * as vscode from 'vscode';
-import { AgentKitPanel } from './webview/AgentKitPanel';
-import { initAgentsCommand } from './commands/initAgents';
-import { quickInitCommand } from './commands/quickPick';
-import { refreshAgentsCommand } from './commands/refreshAgents';
-import { updateAgentsCommand } from './commands/updateAgents';
-import { removeAgentsCommand } from './commands/removeAgents';
-import { previewAgentCommand } from './commands/previewAgent';
-import { toggleFavoriteCommand } from './commands/toggleFavorite';
-import { initClaudeResourceCommand } from './commands/initClaudeResource';
-import { initClaudeEnvironmentCommand } from './commands/initClaudeEnvironment';
-import { openObsidianGraphCommand } from './commands/openObsidianGraph';
-import { TaskManagerPanel } from './webview/TaskManagerPanel';
-import { WorkflowSettingsPanel } from './features/workflows/WorkflowSettingsPanel';
+import { registerCommands } from './commands/registerCommands';
 import { InstalledAgentsProvider } from './providers/InstalledAgentsProvider';
 import { AvailableAgentsProvider } from './providers/AvailableAgentsProvider';
 import { TaskActionsProvider } from './providers/TaskActionsProvider';
@@ -19,7 +7,6 @@ import { ConfigService } from './services/ConfigService';
 import { FileSystemService } from './services/FileSystemService';
 import { logger } from './utils/logger';
 import { COMMANDS, TREE_VIEW_IDS, GLOBAL_STATE_KEYS } from './utils/constants';
-import path from 'path';
 import { ClaudeContextProvider } from './providers/ClaudeContextProvider';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -56,7 +43,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(installedTreeView, availableTreeView, claudeContextTreeView, taskTreeView);
 
   // Register commands
-  registerCommands(context, installedAgentsProvider, availableAgentsProvider, fileSystemService, configService);
+  registerCommands({
+    context,
+    installedProvider: installedAgentsProvider,
+    availableProvider: availableAgentsProvider,
+    fileSystemService,
+    configService
+  });
 
   // Setup file watchers
   setupFileWatchers(context, installedAgentsProvider);
@@ -65,124 +58,6 @@ export function activate(context: vscode.ExtensionContext) {
   createStatusBarItem(context);
 
   logger.info('AgentKit extension activated successfully');
-}
-
-function registerCommands(
-  context: vscode.ExtensionContext,
-  installedProvider: InstalledAgentsProvider,
-  availableProvider: AvailableAgentsProvider,
-  fileSystemService: FileSystemService,
-  configService: ConfigService
-) {
-  context.subscriptions.push(
-    // Open Panel
-    vscode.commands.registerCommand(COMMANDS.OPEN_PANEL, () => {
-      logger.info('Opening AgentKit panel');
-      AgentKitPanel.createOrShow(context.extensionUri, configService);
-    }),
-
-    // Quick Init
-    vscode.commands.registerCommand(COMMANDS.QUICK_INIT, () => {
-      logger.info('Starting quick init');
-      quickInitCommand(context);
-    }),
-
-    // Init Agents
-    vscode.commands.registerCommand(COMMANDS.INIT_AGENTS, () => {
-      logger.info('Starting init agents');
-      initAgentsCommand(context);
-    }),
-
-    // Init Claude Resource
-    vscode.commands.registerCommand(COMMANDS.INIT_CLAUDE_RESOURCE, () => {
-      logger.info('Opening Claude resource initializer');
-      initClaudeResourceCommand(context.extensionUri);
-    }),
-
-    // Init Claude Environment
-    vscode.commands.registerCommand(COMMANDS.INIT_CLAUDE_ENVIRONMENT, async () => {
-      logger.info('Initializing Claude environment');
-      await initClaudeEnvironmentCommand();
-    }),
-
-    // Graph Obsidian
-    vscode.commands.registerCommand(COMMANDS.GRAPH_OBSIDIAN, async () => {
-      logger.info('Opening Graph Obsidian');
-      await openObsidianGraphCommand(context.extensionUri);
-    }),
-
-    // Open Task Manager
-    vscode.commands.registerCommand(COMMANDS.OPEN_TASK_MANAGER, () => {
-      logger.info('Opening Task Manager');
-      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'task', context.globalStorageUri);
-    }),
-
-    // Open Fix Bug Manager
-    vscode.commands.registerCommand(COMMANDS.OPEN_FIX_BUG_MANAGER, () => {
-      logger.info('Opening Fix Bug Manager');
-      TaskManagerPanel.createOrShow(context.extensionUri, configService, 'fix-bug', context.globalStorageUri);
-    }),
-
-    // Open Workflow Settings
-    vscode.commands.registerCommand(COMMANDS.OPEN_WORKFLOW_SETTINGS, () => {
-      logger.info('Opening Workflow Settings');
-      WorkflowSettingsPanel.createOrShow();
-    }),
-
-    // Refresh Agents
-    vscode.commands.registerCommand(COMMANDS.REFRESH_AGENTS, () => {
-      logger.info('Refreshing agents');
-      installedProvider.refresh();
-      availableProvider.refresh();
-      refreshAgentsCommand();
-    }),
-
-    // Update Agents
-    vscode.commands.registerCommand(COMMANDS.UPDATE_AGENTS, async () => {
-      logger.info('Updating agents');
-      await updateAgentsCommand();
-    }),
-
-    // Remove Agents
-    vscode.commands.registerCommand(COMMANDS.REMOVE_AGENTS, async () => {
-      logger.info('Removing agents');
-      await removeAgentsCommand();
-    }),
-
-    // View Agent
-    vscode.commands.registerCommand(COMMANDS.VIEW_AGENT, async (agentPath: string) => {
-      logger.info('Viewing agent', agentPath);
-      
-      if (agentPath && typeof agentPath === 'string') {
-        try {
-          await fileSystemService.openFile(agentPath);
-        } catch (error) {
-          logger.error('Error opening agent file', error as Error);
-          vscode.window.showErrorMessage(`Failed to open agent: ${path.basename(agentPath)}`);
-        }
-      } else {
-        vscode.window.showWarningMessage('No agent file selected');
-      }
-    }),
-
-    // Open Settings
-    vscode.commands.registerCommand(COMMANDS.OPEN_SETTINGS, () => {
-      logger.info('Opening settings');
-      vscode.commands.executeCommand(
-        'workbench.action.openSettings'
-      );
-    }),
-
-    // Preview Agent (for available agents)
-    vscode.commands.registerCommand(COMMANDS.PREVIEW_AGENT, async (departmentId: string, agentName: string) => {
-      await previewAgentCommand(departmentId, agentName);
-    }),
-
-    // Toggle Favorite
-    vscode.commands.registerCommand(COMMANDS.TOGGLE_FAVORITE, async (treeItem) => {
-      await toggleFavoriteCommand(treeItem, configService, availableProvider);
-    })
-  );
 }
 
 function setupFileWatchers(

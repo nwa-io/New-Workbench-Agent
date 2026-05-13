@@ -11,6 +11,7 @@ import { ConfigService } from './ConfigService';
 import { FileSystemService } from './FileSystemService';
 import { compressAgentText } from '../features/compression';
 import { WorkflowStorageService } from '../features/workflows/WorkflowStorageService';
+import type { WorkflowBlock, WorkflowFile, WorkflowStepBlock, WorkflowStepType } from '../features/workflows/types';
 import { logger } from '../utils/logger';
 import {
   TaskDocument,
@@ -22,6 +23,7 @@ import {
   TaskItemCreateRequest,
   TaskItemDeleteRequest,
   TaskItemSelectRequest,
+  TaskItemSummary,
   TaskItemType,
   TaskJiraConnection,
   TaskJiraOpenRequest,
@@ -37,9 +39,9 @@ import {
 } from '../models/TaskManager';
 
 const execFileAsync = promisify(execFile);
-const PROJECT_FOLDER = '.project';
-const PROJECT_FIGMA_FOLDER = '.project/figma';
-const DEFAULT_TASK_DOCUMENTS_FOLDER = '.project/docs';
+export const PROJECT_FOLDER = '.project';
+export const PROJECT_FIGMA_FOLDER = '.project/figma';
+export const DEFAULT_TASK_DOCUMENTS_FOLDER = '.project/docs';
 const MARKITDOWN_MAX_BUFFER = 100 * 1024 * 1024;
 const FIGMA_NODE_LIST_MAX_DEPTH = 2;
 const JIRA_BROWSER_PROFILE_FOLDER = 'jira-playwright-profile';
@@ -48,17 +50,21 @@ const TASK_MARKDOWN_DOCUMENT_LIMIT = 5;
 const TASK_MARKDOWN_DOCUMENT_CHAR_LIMIT = 1400;
 const TASK_MARKDOWN_GUIDE_RELATIVE_PATH = ['webview', 'execution', 'condensed', 'guide.md'];
 const TASK_MARKDOWN_BUNDLED_GUIDE_RELATIVE_PATH = ['execution', 'condensed', 'guide.md'];
-const JIRA_MARKDOWN_FILE_NAME = 'jira.md';
+export const JIRA_MARKDOWN_FILE_NAME = 'jira.md';
+export const TASK_ITEM_METADATA_FILE_NAME = 'item.json';
 const FIGMA_CACHE_SCHEMA_VERSION = 1;
 const JIRA_CACHE_PREFIX = 'agentkit:jira:';
-const TASK_ITEM_FOLDERS: Record<TaskItemType, string> = {
+export const TASK_ITEM_FOLDERS: Record<TaskItemType, string> = {
   task: 'task',
-  bug: 'bug',
+  bug: 'task',
   analysis: 'analysis'
+};
+const LEGACY_TASK_ITEM_FOLDERS: Partial<Record<TaskItemType, string>> = {
+  bug: 'bug'
 };
 const TASK_TYPE_TO_MODE: Record<TaskItemType, TaskManagerMode> = {
   task: 'task',
-  bug: 'fix-bug',
+  bug: 'task',
   analysis: 'analysis'
 };
 
@@ -94,6 +100,21 @@ interface FigmaDocumentNode {
   name: string;
   type: string;
   children?: FigmaDocumentNode[];
+}
+
+interface TaskItemMetadata {
+  id: string;
+  type: TaskItemType;
+  workflowId?: string;
+  createdAt?: string;
+  updatedAt: string;
+}
+
+type TaskFeatureSummaryStatus = 'complete' | 'running' | 'failed' | 'missing' | 'pending' | 'skipped';
+
+interface TaskFeatureSummary {
+  title: string;
+  status: TaskFeatureSummaryStatus;
 }
 
 export class TaskManagerService {
@@ -143,7 +164,7 @@ export class TaskManagerService {
       };
     }
 
-    const items = await this.listTaskItems(workspaceFolder);
+    const items = await this.listTaskItems(workspaceFolder, workflows);
     const currentItem = this.resolveStateItem(items, mode, itemReference);
     const stateMode = currentItem ? TASK_TYPE_TO_MODE[currentItem.type] : mode;
     const documentsFolder = this.getDocumentsRelativeFolder();
@@ -192,12 +213,13 @@ export class TaskManagerService {
     }
 
     const itemType = this.normalizeTaskItemType(request.type);
-    const itemId = this.normalizeTaskItemId(request.id);
+    const itemId = this.normalizeCreatedTaskItemId(request.name || request.id || '');
     const itemFolderUri = this.getTaskItemFolderUri(workspaceFolder, itemType, itemId);
 
     await vscode.workspace.fs.createDirectory(itemFolderUri);
     await vscode.workspace.fs.createDirectory(this.getProjectTypeFolderUri(workspaceFolder, itemType));
     await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(workspaceFolder, ...PROJECT_FIGMA_FOLDER.split('/')));
+    await this.writeTaskItemMetadata(workspaceFolder, itemType, itemId, request.workflowId);
 
     const item = await this.getTaskItem(workspaceFolder, itemType, itemId);
     this.currentItem = item;
@@ -260,8 +282,14 @@ export class TaskManagerService {
       recursive: false,
       useTrash: true
     });
-    await this.deleteUriIfExists(this.getLegacyTaskItemMarkdownUri(workspaceFolder, item.type, item.id), {
-      recursive: false,
+    for (const legacyMarkdownUri of this.getLegacyTaskItemMarkdownUris(workspaceFolder, item.type, item.id)) {
+      await this.deleteUriIfExists(legacyMarkdownUri, {
+        recursive: false,
+        useTrash: true
+      });
+    }
+    await this.deleteUriIfExists(this.getLegacyTaskItemFolderUri(workspaceFolder, item.type, item.id), {
+      recursive: true,
       useTrash: true
     });
     await this.deleteUriIfExists(this.getFigmaCacheUri(workspaceFolder, item.type, item.id), {
@@ -647,7 +675,7 @@ export class TaskManagerService {
     figmaNodes: TaskFigmaNode[],
     ticket?: TaskJiraTicket
   ): string {
-    const objective = mode === 'fix-bug'
+    const objective = item.type === 'bug' || mode === 'fix-bug'
       ? '- Use this condensed context to diagnose and fix the bug in the codebase.'
       : mode === 'analysis'
         ? '- Use this condensed context to analyze the codebase, requirements, and implementation options.'
@@ -1593,47 +1621,114 @@ export class TaskManagerService {
     return item;
   }
 
-  private async listTaskItems(workspaceFolder: vscode.Uri): Promise<TaskManagerItem[]> {
-    const items: TaskManagerItem[] = [];
+  private async listTaskItems(workspaceFolder: vscode.Uri, workflows: WorkflowFile[] = []): Promise<TaskManagerItem[]> {
+    const itemsByKey = new Map<string, TaskManagerItem>();
 
-    for (const type of Object.keys(TASK_ITEM_FOLDERS) as TaskItemType[]) {
-      const folderUri = this.getProjectTypeFolderUri(workspaceFolder, type);
-      let entries: [string, vscode.FileType][];
+    await this.collectTaskItemsFromFolder(workspaceFolder, 'task', 'task', itemsByKey, workflows);
+    await this.collectTaskItemsFromFolder(workspaceFolder, 'analysis', 'analysis', itemsByKey, workflows);
+    await this.collectLegacyTaskItemsFromFolder(workspaceFolder, 'bug', 'bug', itemsByKey, workflows);
 
-      try {
-        entries = await vscode.workspace.fs.readDirectory(folderUri);
-      } catch {
-        continue;
-      }
-
-      for (const [name, fileType] of entries) {
-        if (fileType !== vscode.FileType.Directory) {
-          continue;
-        }
-
-        try {
-          items.push(await this.getTaskItem(workspaceFolder, type, name));
-        } catch (error) {
-          logger.warn(`Skipping invalid task manager item ${name}: ${(error as Error).message}`);
-        }
-      }
-    }
-
-    return items.sort((a, b) => {
+    return Array.from(itemsByKey.values()).sort((a, b) => {
       const typeCompare = a.type.localeCompare(b.type);
       return typeCompare !== 0 ? typeCompare : a.id.localeCompare(b.id);
     });
   }
 
+  private async collectTaskItemsFromFolder(
+    workspaceFolder: vscode.Uri,
+    folderName: string,
+    fallbackType: TaskItemType,
+    itemsByKey: Map<string, TaskManagerItem>,
+    workflows: WorkflowFile[] = []
+  ): Promise<void> {
+    const folderUri = vscode.Uri.joinPath(workspaceFolder, PROJECT_FOLDER, folderName);
+    let entries: [string, vscode.FileType][];
+
+    try {
+      entries = await vscode.workspace.fs.readDirectory(folderUri);
+    } catch {
+      return;
+    }
+
+    for (const [name, fileType] of entries) {
+      if (fileType !== vscode.FileType.Directory) {
+        continue;
+      }
+
+      try {
+        const metadata = await this.readTaskItemMetadataFromFolder(workspaceFolder, folderName, name);
+        const type = this.normalizeTaskItemType(metadata?.type || fallbackType);
+
+        if (TASK_ITEM_FOLDERS[type] !== folderName) {
+          continue;
+        }
+
+        const item = await this.getTaskItem(workspaceFolder, type, name, workflows);
+        itemsByKey.set(this.getTaskItemKey(item), item);
+      } catch (error) {
+        logger.warn(`Skipping invalid task manager item ${name}: ${(error as Error).message}`);
+      }
+    }
+  }
+
+  private async collectLegacyTaskItemsFromFolder(
+    workspaceFolder: vscode.Uri,
+    folderName: string,
+    type: TaskItemType,
+    itemsByKey: Map<string, TaskManagerItem>,
+    workflows: WorkflowFile[] = []
+  ): Promise<void> {
+    const folderUri = vscode.Uri.joinPath(workspaceFolder, PROJECT_FOLDER, folderName);
+    let entries: [string, vscode.FileType][];
+
+    try {
+      entries = await vscode.workspace.fs.readDirectory(folderUri);
+    } catch {
+      return;
+    }
+
+    for (const [name, fileType] of entries) {
+      if (fileType !== vscode.FileType.Directory) {
+        continue;
+      }
+
+      try {
+        const itemId = this.normalizeTaskItemId(name);
+        const itemKey = `${type}:${itemId}`;
+
+        if (itemsByKey.has(itemKey)) {
+          continue;
+        }
+
+        if (await this.uriExists(this.getTaskItemFolderUri(workspaceFolder, type, itemId))) {
+          continue;
+        }
+
+        const migrated = await this.migrateLegacyTaskItemFolder(workspaceFolder, type, itemId);
+        if (!migrated) {
+          continue;
+        }
+
+        const item = await this.getTaskItem(workspaceFolder, type, itemId, workflows);
+        itemsByKey.set(this.getTaskItemKey(item), item);
+      } catch (error) {
+        logger.warn(`Skipping invalid legacy task manager item ${name}: ${(error as Error).message}`);
+      }
+    }
+  }
+
   private async getTaskItem(
     workspaceFolder: vscode.Uri,
     type: TaskItemType,
-    id: string
+    id: string,
+    workflows: WorkflowFile[] = []
   ): Promise<TaskManagerItem> {
     const itemType = this.normalizeTaskItemType(type);
     const itemId = this.normalizeTaskItemId(id);
+    await this.migrateLegacyTaskItemFolder(workspaceFolder, itemType, itemId);
     const folderUri = this.getTaskItemFolderUri(workspaceFolder, itemType, itemId);
     await this.migrateLegacyTaskMarkdown(workspaceFolder, itemType, itemId);
+    await this.ensureTaskItemMetadata(workspaceFolder, itemType, itemId);
     const markdownUri = this.getTaskItemMarkdownUri(workspaceFolder, itemType, itemId);
     const jiraUri = this.getTaskItemJiraUri(workspaceFolder, itemType, itemId);
     const figmaCacheUri = this.getFigmaCacheUri(workspaceFolder, itemType, itemId);
@@ -1642,6 +1737,20 @@ export class TaskManagerService {
     const jiraStat = await this.statUri(jiraUri);
     const figmaStat = await this.statUri(figmaCacheUri);
     const updatedAt = this.getLatestStatDate([folderStat, markdownStat, jiraStat, figmaStat]);
+    const metadata = await this.readTaskItemMetadata(workspaceFolder, itemType, itemId);
+    const workflow = workflows.find(candidate => candidate.id === metadata?.workflowId);
+    const inMemoryMarkdownLength = markdownStat ? 0 : this.taskMarkdownContentByItem[`${itemType}:${itemId}`]?.length || 0;
+    const summary = this.getTaskItemSummary(
+      metadata?.workflowId,
+      workflow,
+      {
+        hasJira: Boolean(jiraStat),
+        hasMarkdown: Boolean(markdownStat),
+        hasFigmaCache: Boolean(figmaStat)
+      },
+      [markdownStat, jiraStat, figmaStat],
+      inMemoryMarkdownLength
+    );
 
     return {
       id: itemId,
@@ -1650,12 +1759,162 @@ export class TaskManagerService {
       markdownPath: this.getTaskItemMarkdownRelativePath(itemType, itemId),
       jiraPath: this.getTaskItemJiraRelativePath(itemType, itemId),
       figmaCachePath: this.getFigmaCacheRelativePath(itemType, itemId),
+      workflowId: metadata?.workflowId,
       createdAt: folderStat ? new Date(folderStat.ctime).toISOString() : undefined,
       updatedAt: updatedAt ? updatedAt.toISOString() : undefined,
       hasJira: Boolean(jiraStat),
       hasMarkdown: Boolean(markdownStat),
-      hasFigmaCache: Boolean(figmaStat)
+      hasFigmaCache: Boolean(figmaStat),
+      summary
     };
+  }
+
+  private getTaskItemSummary(
+    workflowId: string | undefined,
+    workflow: WorkflowFile | undefined,
+    availability: { hasJira: boolean; hasMarkdown: boolean; hasFigmaCache: boolean },
+    contentStats: Array<vscode.FileStat | undefined>,
+    inMemoryContentLength = 0
+  ): TaskItemSummary {
+    const features = workflow
+      ? this.getWorkflowFeatureSummaries(workflow.blocks, availability)
+      : this.getFallbackFeatureSummaries(availability);
+
+    features.push({
+      title: 'Markdown brief',
+      status: availability.hasMarkdown ? 'complete' : 'missing'
+    });
+
+    const totalFeatureCount = Math.max(features.length, 1);
+    const completedFeatureCount = features.filter(feature => feature.status === 'complete' || feature.status === 'skipped').length;
+    const progressPercent = Math.round((completedFeatureCount / totalFeatureCount) * 100);
+    const failedFeature = features.find(feature => feature.status === 'failed');
+    const runningFeature = features.find(feature => feature.status === 'running');
+    const missingFeature = features.find(feature => feature.status === 'missing');
+    const pendingFeature = features.find(feature => feature.status === 'pending');
+    const currentFeature = runningFeature
+      ? runningFeature.title
+      : missingFeature
+        ? `Needs ${missingFeature.title}`
+        : workflow && pendingFeature
+          ? pendingFeature.title
+          : progressPercent >= 100
+            ? 'Ready'
+            : 'Collect sources';
+    const missingWorkflowWarning = workflowId && !workflow ? 'Selected workflow was not found.' : undefined;
+
+    return {
+      usageTokens: this.estimateUsageTokens(contentStats, inMemoryContentLength),
+      progressPercent,
+      completedFeatureCount,
+      totalFeatureCount,
+      currentFeature,
+      warning: failedFeature ? undefined : missingFeature
+        ? `${missingFeature.title} is required.`
+        : missingWorkflowWarning,
+      error: failedFeature ? `${failedFeature.title} failed.` : undefined,
+      workflowName: workflow?.name
+    };
+  }
+
+  private getFallbackFeatureSummaries(
+    availability: { hasJira: boolean; hasFigmaCache: boolean }
+  ): TaskFeatureSummary[] {
+    return [
+      {
+        title: 'Jira',
+        status: availability.hasJira ? 'complete' : 'pending'
+      },
+      {
+        title: 'Figma',
+        status: availability.hasFigmaCache ? 'complete' : 'pending'
+      }
+    ];
+  }
+
+  private getWorkflowFeatureSummaries(
+    blocks: WorkflowBlock[],
+    availability: { hasJira: boolean; hasMarkdown: boolean; hasFigmaCache: boolean }
+  ): TaskFeatureSummary[] {
+    return blocks.flatMap(block => this.getWorkflowBlockFeatureSummaries(block, availability));
+  }
+
+  private getWorkflowBlockFeatureSummaries(
+    block: WorkflowBlock,
+    availability: { hasJira: boolean; hasMarkdown: boolean; hasFigmaCache: boolean }
+  ): TaskFeatureSummary[] {
+    if (block.kind === 'parallel') {
+      if (block.status === 'running' || block.status === 'failed') {
+        return [
+          {
+            title: block.title || 'Parallel workflow',
+            status: block.status
+          }
+        ];
+      }
+
+      return block.children.flatMap(child => this.getWorkflowBlockFeatureSummaries(child, availability));
+    }
+
+    return [this.getWorkflowStepFeatureSummary(block, availability)];
+  }
+
+  private getWorkflowStepFeatureSummary(
+    step: WorkflowStepBlock,
+    availability: { hasJira: boolean; hasMarkdown: boolean; hasFigmaCache: boolean }
+  ): TaskFeatureSummary {
+    if (step.status === 'success') {
+      return { title: step.title || this.getWorkflowStepTypeLabel(step.stepType), status: 'complete' };
+    }
+
+    if (step.status === 'running' || step.status === 'failed' || step.status === 'skipped') {
+      return { title: step.title || this.getWorkflowStepTypeLabel(step.stepType), status: step.status };
+    }
+
+    const collectStatus = this.getCollectStepAvailabilityStatus(step.stepType, availability);
+    return {
+      title: step.title || this.getWorkflowStepTypeLabel(step.stepType),
+      status: collectStatus || 'pending'
+    };
+  }
+
+  private getCollectStepAvailabilityStatus(
+    stepType: WorkflowStepType,
+    availability: { hasJira: boolean; hasMarkdown: boolean; hasFigmaCache: boolean }
+  ): TaskFeatureSummaryStatus | undefined {
+    if (stepType === 'collect_jira') {
+      return availability.hasJira ? 'complete' : 'missing';
+    }
+
+    if (stepType === 'collect_figma') {
+      return availability.hasFigmaCache ? 'complete' : 'missing';
+    }
+
+    if (stepType === 'collect_document') {
+      return availability.hasMarkdown ? 'complete' : 'missing';
+    }
+
+    return undefined;
+  }
+
+  private getWorkflowStepTypeLabel(stepType: WorkflowStepType): string {
+    return String(stepType || 'custom')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, match => match.toUpperCase());
+  }
+
+  private estimateUsageTokens(
+    stats: Array<vscode.FileStat | undefined>,
+    inMemoryContentLength = 0
+  ): number {
+    const byteCount = stats.reduce((total, stat) => total + (stat?.size || 0), 0);
+    const charCount = byteCount + inMemoryContentLength;
+
+    if (charCount <= 0) {
+      return 0;
+    }
+
+    return Math.max(1, Math.ceil(charCount / 4));
   }
 
   private getLatestStatDate(stats: Array<vscode.FileStat | undefined>): Date | undefined {
@@ -1670,6 +1929,123 @@ export class TaskManagerService {
     return new Date(Math.max(...timestamps));
   }
 
+  private async migrateLegacyTaskItemFolder(
+    workspaceFolder: vscode.Uri,
+    type: TaskItemType,
+    id: string
+  ): Promise<boolean> {
+    const legacyFolderName = LEGACY_TASK_ITEM_FOLDERS[type];
+
+    if (!legacyFolderName || legacyFolderName === TASK_ITEM_FOLDERS[type]) {
+      return true;
+    }
+
+    const currentFolderUri = this.getTaskItemFolderUri(workspaceFolder, type, id);
+
+    if (await this.uriExists(currentFolderUri)) {
+      return true;
+    }
+
+    const legacyFolderUri = this.getLegacyTaskItemFolderUri(workspaceFolder, type, id);
+
+    if (!await this.uriExists(legacyFolderUri)) {
+      return true;
+    }
+
+    try {
+      await vscode.workspace.fs.createDirectory(this.getProjectTypeFolderUri(workspaceFolder, type));
+      await vscode.workspace.fs.rename(legacyFolderUri, currentFolderUri, { overwrite: false });
+      await this.writeTaskItemMetadata(workspaceFolder, type, id);
+      return true;
+    } catch (error) {
+      logger.warn(`Unable to move legacy task item ${PROJECT_FOLDER}/${legacyFolderName}/${id}: ${(error as Error).message}`);
+      return false;
+    }
+  }
+
+  private async readTaskItemMetadataFromFolder(
+    workspaceFolder: vscode.Uri,
+    folderName: string,
+    id: string
+  ): Promise<TaskItemMetadata | undefined> {
+    const metadataUri = this.getTaskItemMetadataUriForFolder(workspaceFolder, folderName, id);
+
+    try {
+      const payload = JSON.parse(Buffer.from(await vscode.workspace.fs.readFile(metadataUri)).toString('utf8')) as Partial<TaskItemMetadata>;
+
+      if (!payload.type) {
+        return undefined;
+      }
+
+      return {
+        id: this.normalizeTaskItemId(payload.id || id),
+        type: this.normalizeTaskItemType(payload.type),
+        workflowId: payload.workflowId,
+        createdAt: payload.createdAt,
+        updatedAt: payload.updatedAt || ''
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async readTaskItemMetadata(
+    workspaceFolder: vscode.Uri,
+    type: TaskItemType,
+    id: string
+  ): Promise<TaskItemMetadata | undefined> {
+    return this.readTaskItemMetadataFromFolder(workspaceFolder, TASK_ITEM_FOLDERS[type], id);
+  }
+
+  private async ensureTaskItemMetadata(
+    workspaceFolder: vscode.Uri,
+    type: TaskItemType,
+    id: string
+  ): Promise<void> {
+    const folderUri = this.getTaskItemFolderUri(workspaceFolder, type, id);
+
+    if (!await this.uriExists(folderUri)) {
+      return;
+    }
+
+    const metadata = await this.readTaskItemMetadata(workspaceFolder, type, id);
+
+    if (metadata?.type === type && metadata.id === id) {
+      return;
+    }
+
+    if (type === 'task' && !metadata) {
+      return;
+    }
+
+    await this.writeTaskItemMetadata(workspaceFolder, type, id, metadata?.workflowId);
+  }
+
+  private async writeTaskItemMetadata(
+    workspaceFolder: vscode.Uri,
+    type: TaskItemType,
+    id: string,
+    workflowId?: string
+  ): Promise<void> {
+    const metadataUri = this.getTaskItemMetadataUri(workspaceFolder, type, id);
+    const existing = await this.readTaskItemMetadata(workspaceFolder, type, id);
+    const now = new Date().toISOString();
+    const metadata: TaskItemMetadata = {
+      id,
+      type,
+      workflowId,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now
+    };
+
+    if (!metadata.workflowId) {
+      delete metadata.workflowId;
+    }
+
+    await vscode.workspace.fs.createDirectory(this.getTaskItemFolderUri(workspaceFolder, type, id));
+    await vscode.workspace.fs.writeFile(metadataUri, Buffer.from(`${JSON.stringify(metadata, null, 2)}\n`, 'utf8'));
+  }
+
   private async migrateLegacyTaskMarkdown(
     workspaceFolder: vscode.Uri,
     type: TaskItemType,
@@ -1681,17 +2057,20 @@ export class TaskManagerService {
       return;
     }
 
-    const legacyMarkdownUri = this.getLegacyTaskItemMarkdownUri(workspaceFolder, type, id);
+    const legacyMarkdownUris = this.getLegacyTaskItemMarkdownUris(workspaceFolder, type, id);
 
-    if (!await this.uriExists(legacyMarkdownUri)) {
+    for (const legacyMarkdownUri of legacyMarkdownUris) {
+      if (!await this.uriExists(legacyMarkdownUri)) {
+        continue;
+      }
+
+      try {
+        await vscode.workspace.fs.createDirectory(this.getTaskItemFolderUri(workspaceFolder, type, id));
+        await vscode.workspace.fs.rename(legacyMarkdownUri, markdownUri, { overwrite: false });
+      } catch (error) {
+        logger.warn(`Unable to move legacy task markdown ${legacyMarkdownUri.fsPath}: ${(error as Error).message}`);
+      }
       return;
-    }
-
-    try {
-      await vscode.workspace.fs.createDirectory(this.getTaskItemFolderUri(workspaceFolder, type, id));
-      await vscode.workspace.fs.rename(legacyMarkdownUri, markdownUri, { overwrite: false });
-    } catch (error) {
-      logger.warn(`Unable to move legacy task markdown ${this.getLegacyTaskItemMarkdownRelativePath(type, id)}: ${(error as Error).message}`);
     }
   }
 
@@ -1930,6 +2309,10 @@ export class TaskManagerService {
     return trimmedId;
   }
 
+  private normalizeCreatedTaskItemId(id: string): string {
+    return this.normalizeTaskItemId(id).toUpperCase();
+  }
+
   private getTaskItemKey(item: TaskManagerItem): string {
     return `${item.type}:${item.id}`;
   }
@@ -1954,8 +2337,21 @@ export class TaskManagerService {
     return vscode.Uri.joinPath(workspaceFolder, ...this.getTaskItemMarkdownRelativePath(type, id).split('/'));
   }
 
-  private getLegacyTaskItemMarkdownUri(workspaceFolder: vscode.Uri, type: TaskItemType, id: string): vscode.Uri {
-    return vscode.Uri.joinPath(workspaceFolder, ...this.getLegacyTaskItemMarkdownRelativePath(type, id).split('/'));
+  private getLegacyTaskItemMarkdownUris(workspaceFolder: vscode.Uri, type: TaskItemType, id: string): vscode.Uri[] {
+    return this.getLegacyTaskItemMarkdownRelativePaths(type, id)
+      .map(relativePath => vscode.Uri.joinPath(workspaceFolder, ...relativePath.split('/')));
+  }
+
+  private getTaskItemMetadataUri(workspaceFolder: vscode.Uri, type: TaskItemType, id: string): vscode.Uri {
+    return vscode.Uri.joinPath(this.getTaskItemFolderUri(workspaceFolder, type, id), TASK_ITEM_METADATA_FILE_NAME);
+  }
+
+  private getTaskItemMetadataUriForFolder(workspaceFolder: vscode.Uri, folderName: string, id: string): vscode.Uri {
+    return vscode.Uri.joinPath(workspaceFolder, PROJECT_FOLDER, folderName, id, TASK_ITEM_METADATA_FILE_NAME);
+  }
+
+  private getLegacyTaskItemFolderUri(workspaceFolder: vscode.Uri, type: TaskItemType, id: string): vscode.Uri {
+    return vscode.Uri.joinPath(workspaceFolder, PROJECT_FOLDER, LEGACY_TASK_ITEM_FOLDERS[type] || TASK_ITEM_FOLDERS[type], id);
   }
 
   private getTaskItemJiraUri(workspaceFolder: vscode.Uri, type: TaskItemType, id: string): vscode.Uri {
@@ -1974,8 +2370,11 @@ export class TaskManagerService {
     return `${this.getTaskItemFolderRelativePath(type, id)}/${id}.md`;
   }
 
-  private getLegacyTaskItemMarkdownRelativePath(type: TaskItemType, id: string): string {
-    return `${PROJECT_FOLDER}/${TASK_ITEM_FOLDERS[type]}/${id}.md`;
+  private getLegacyTaskItemMarkdownRelativePaths(type: TaskItemType, id: string): string[] {
+    const folderNames = [TASK_ITEM_FOLDERS[type], LEGACY_TASK_ITEM_FOLDERS[type]]
+      .filter((folderName, index, names): folderName is string => Boolean(folderName) && names.indexOf(folderName) === index);
+
+    return folderNames.map(folderName => `${PROJECT_FOLDER}/${folderName}/${id}.md`);
   }
 
   private getTaskItemJiraRelativePath(type: TaskItemType, id: string): string {

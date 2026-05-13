@@ -1,22 +1,30 @@
 export const taskLayout = `<div class="task-container">
   <header class="task-header">
-    <div>
-      <h1>Task Manager</h1>
-      <p class="task-subtitle" id="taskModeSummary">Prepare context for a new task.</p>
-    </div>
+    <nav class="task-breadcrumb" id="taskBreadcrumb" aria-label="Task Manager breadcrumb"></nav>
     <div class="task-header-actions">
-      <button class="secondary" id="taskBackBtn" type="button" hidden>Back</button>
-      <button id="taskCreateHeaderBtn" type="button">Create</button>
+      <button class="icon-button create-icon-button" id="taskCreateHeaderBtn" type="button" title="Create item" aria-label="Create item">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+      </button>
     </div>
   </header>
 
   <main class="task-list-view" id="taskListView">
-    <section class="task-block">
-      <div class="block-header">
-        <div>
-          <h2 id="taskListTitle">Tasks</h2>
-          <p class="block-meta" id="taskListMeta">Loading...</p>
+    <section class="task-block task-list-block">
+      <div class="task-list-toolbar">
+        <div class="task-filter-toolbar">
+          <button class="icon-button filter-icon-button" id="taskFilterHeaderBtn" type="button" title="Filter items" aria-label="Filter items">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 5h16"></path>
+              <path d="M7 12h10"></path>
+              <path d="M10 19h4"></path>
+            </svg>
+          </button>
+          <div class="task-filter-chips" id="taskFilterChips" aria-label="Applied filters"></div>
         </div>
+        <p class="task-list-status" id="taskListStatus" aria-live="polite"></p>
       </div>
       <div class="task-item-list" id="taskItemList"></div>
     </section>
@@ -33,6 +41,7 @@ export const taskLayout = `<div class="task-container">
               <span class="create-stepper-copy">
                 <span class="create-stepper-title">Select type</span>
                 <span class="create-stepper-description">Task, bug, or analysis</span>
+                <span class="create-stepper-result" data-create-step-result="1"></span>
               </span>
             </span>
           </button>
@@ -43,6 +52,7 @@ export const taskLayout = `<div class="task-container">
               <span class="create-stepper-copy">
                 <span class="create-stepper-title">Enter name</span>
                 <span class="create-stepper-description">Item folder name</span>
+                <span class="create-stepper-result" data-create-step-result="2"></span>
               </span>
             </span>
           </button>
@@ -51,8 +61,9 @@ export const taskLayout = `<div class="task-container">
             <span class="create-stepper-body">
               <span class="create-stepper-marker">3</span>
               <span class="create-stepper-copy">
-                <span class="create-stepper-title">Workflow layout</span>
+                <span class="create-stepper-title">Workflow</span>
                 <span class="create-stepper-description">Read-only YAML tree</span>
+                <span class="create-stepper-result" data-create-step-result="3"></span>
               </span>
             </span>
           </button>
@@ -81,7 +92,7 @@ export const taskLayout = `<div class="task-container">
             <span>Workflow</span>
             <select id="workflowLayoutSelect"></select>
           </label>
-          <div class="workflow-layout-preview" id="workflowLayoutPreview" aria-label="Workflow layout preview"></div>
+          <div class="workflow-layout-preview" id="workflowLayoutPreview" aria-label="Workflow preview"></div>
         </div>
 
         <p class="create-status" id="taskCreateStatus"></p>

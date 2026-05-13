@@ -67,11 +67,6 @@
         "icon": "$(checklist)"
       },
       {
-        "command": "nwa.openFixBugManager",
-        "title": "NWA: Fix Bug",
-        "icon": "$(bug)"
-      },
-      {
         "command": "nwa.openWorkflowSettings",
         "title": "NWA: Workflow Settings",
         "icon": "$(gear)"
@@ -155,7 +150,7 @@
       },
       {
         "view": "nwa-task",
-        "contents": "Prepare task context.\n[Task](command:nwa.openTaskManager)\n[Fix bug](command:nwa.openFixBugManager)\n[Settings](command:nwa.openWorkflowSettings)"
+        "contents": "Prepare task context.\n[Task](command:nwa.openTaskManager)\n[Settings](command:nwa.openWorkflowSettings)"
       }
     ],
     "menus": {
@@ -227,9 +222,6 @@
         },
         {
           "command": "nwa.openTaskManager"
-        },
-        {
-          "command": "nwa.openFixBugManager"
         },
         {
           "command": "nwa.openWorkflowSettings"

@@ -4,7 +4,7 @@ import * as fs from 'fs/promises';
 import { parseWorkflow, stringifyWorkflow } from './yaml';
 import { WORKFLOW_FILE_VERSION, WorkflowFile } from './types';
 
-const WORKFLOWS_DIR = path.join('.project', 'workflows');
+export const WORKFLOWS_DIR = '.project/workflows';
 
 export class WorkflowStorageService {
   private getWorkspaceRoot(): string | undefined {

@@ -21,6 +21,17 @@ export interface TaskDocument {
   workspacePath: string;
 }
 
+export interface TaskItemSummary {
+  usageTokens: number;
+  progressPercent: number;
+  completedFeatureCount: number;
+  totalFeatureCount: number;
+  currentFeature?: string;
+  warning?: string;
+  error?: string;
+  workflowName?: string;
+}
+
 export interface TaskManagerItem {
   id: string;
   type: TaskItemType;
@@ -28,11 +39,13 @@ export interface TaskManagerItem {
   markdownPath: string;
   jiraPath: string;
   figmaCachePath: string;
+  workflowId?: string;
   createdAt?: string;
   updatedAt?: string;
   hasJira: boolean;
   hasMarkdown: boolean;
   hasFigmaCache: boolean;
+  summary: TaskItemSummary;
 }
 
 export interface TaskFigmaConnection {
@@ -150,7 +163,8 @@ export interface TaskJiraReadRequest {
 }
 
 export interface TaskItemCreateRequest {
-  id: string;
+  id?: string;
+  name?: string;
   type: TaskItemType;
   workflowId?: string;
 }

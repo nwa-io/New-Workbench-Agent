@@ -8,6 +8,7 @@ import { FileSystemService } from '../services/FileSystemService';
 import { TaskManagerService } from '../services/TaskManagerService';
 import { logger } from '../utils/logger';
 import { openExternalTerminal } from '../utils/externalTerminal';
+import { FIGMA_ACCESS_TOKEN_SECRET_KEY } from '../features/workflows/settingsData';
 import {
   TaskDocumentUpload,
   TaskFigmaNodeSelectionRequest,
@@ -39,7 +40,8 @@ export class TaskManagerPanel {
     extensionUri: vscode.Uri,
     configService?: ConfigService,
     mode: TaskManagerMode = 'task',
-    storageUri?: vscode.Uri
+    storageUri?: vscode.Uri,
+    secretStorage?: vscode.SecretStorage
   ): void {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
@@ -61,7 +63,7 @@ export class TaskManagerPanel {
       }
     );
 
-    TaskManagerPanel.currentPanel = new TaskManagerPanel(panel, extensionUri, configService, mode, storageUri);
+    TaskManagerPanel.currentPanel = new TaskManagerPanel(panel, extensionUri, configService, mode, storageUri, secretStorage);
   }
 
   private constructor(
@@ -69,7 +71,8 @@ export class TaskManagerPanel {
     extensionUri: vscode.Uri,
     configService?: ConfigService,
     mode: TaskManagerMode = 'task',
-    storageUri?: vscode.Uri
+    storageUri?: vscode.Uri,
+    private readonly secretStorage?: vscode.SecretStorage
   ) {
     this._panel = panel;
     this.mode = mode;
@@ -185,10 +188,22 @@ export class TaskManagerPanel {
         command: 'taskManagerState',
         data: state
       });
+      await this.postTaskIntegrationSettings();
     } catch (error) {
       logger.error('Error loading task manager state', error as Error);
       vscode.window.showErrorMessage(`Task Manager Error: ${(error as Error).message}`);
     }
+  }
+
+  private async postTaskIntegrationSettings(): Promise<void> {
+    const savedFigmaToken = this.secretStorage
+      ? await this.secretStorage.get(FIGMA_ACCESS_TOKEN_SECRET_KEY)
+      : undefined;
+
+    this._panel.webview.postMessage({
+      command: 'taskIntegrationSettings',
+      data: { hasFigmaToken: Boolean(savedFigmaToken) }
+    });
   }
 
   private applyStateContext(state: { mode: TaskManagerMode; currentItem?: { id: string; type: TaskItemType } }): void {
@@ -317,6 +332,7 @@ export class TaskManagerPanel {
     }
 
     try {
+      const token = await this.resolveFigmaToken(request.token);
       const result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Window,
@@ -327,6 +343,7 @@ export class TaskManagerPanel {
           progress.report({ increment: 0, message: 'Connecting to Figma...' });
           const syncResult = await this.taskManagerService.syncFigmaLink({
             ...request,
+            token,
             mode: request.mode || this.mode,
             itemId: request.itemId || this.currentItemId,
             itemType: request.itemType || this.currentItemType
@@ -350,6 +367,17 @@ export class TaskManagerPanel {
       });
       vscode.window.showErrorMessage(`Figma sync failed: ${(error as Error).message}`);
     }
+  }
+
+  private async resolveFigmaToken(token: string | undefined): Promise<string> {
+    const cleanToken = String(token || '').trim();
+    if (cleanToken) {
+      return cleanToken;
+    }
+
+    return this.secretStorage
+      ? (await this.secretStorage.get(FIGMA_ACCESS_TOKEN_SECRET_KEY)) || ''
+      : '';
   }
 
   private async handleUpdateFigmaNodeSelection(request?: TaskFigmaNodeSelectionRequest): Promise<void> {

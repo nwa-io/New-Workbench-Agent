@@ -38,6 +38,15 @@ export class ConfigService {
     return this.config.get<string>(CONFIG_KEYS.TASK_DOCUMENTS_FOLDER, '.project/docs');
   }
 
+  async setTaskDocumentsFolder(folder: string | undefined): Promise<void> {
+    await this.config.update(
+      CONFIG_KEYS.TASK_DOCUMENTS_FOLDER,
+      folder,
+      vscode.ConfigurationTarget.Global
+    );
+    this.refresh();
+  }
+
   async setDefaultTool(tool: ToolType): Promise<void> {
     await this.config.update(
       CONFIG_KEYS.DEFAULT_TOOL,

@@ -3,6 +3,7 @@ import * as path from 'path';
 import { getClaudeResourceContent } from './claudeResourceContent';
 import { FileSystemService } from '../services/FileSystemService';
 import { logger } from '../utils/logger';
+import { COMMANDS } from '../utils/constants';
 
 interface ClaudeResourceDefinition {
   id: string;
@@ -170,7 +171,7 @@ export class ClaudeResourcePanel {
       }
 
       await vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
-      await vscode.commands.executeCommand('agentkit.refreshAgents');
+      await vscode.commands.executeCommand(COMMANDS.REFRESH_AGENTS);
 
       this.panel.webview.postMessage({ command: 'installClaudeResourcesComplete' });
       vscode.window.showInformationMessage(

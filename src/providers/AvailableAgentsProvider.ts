@@ -3,6 +3,7 @@ import { AgentTreeItem } from './AgentTreeItem';
 import { AgentKitService } from '../services/AgentKitService';
 import { ConfigService } from '../services/ConfigService';
 import { logger } from '../utils/logger';
+import { COMMANDS } from '../utils/constants';
 import { agentDescriptions } from '../webview/data/agentDescriptions';
 
 export class AvailableAgentsProvider implements vscode.TreeDataProvider<AgentTreeItem> {
@@ -150,7 +151,7 @@ export class AvailableAgentsProvider implements vscode.TreeDataProvider<AgentTre
         );
 
         item.command = {
-          command: 'agentkit.previewAgent',
+          command: COMMANDS.PREVIEW_AGENT,
           title: 'Preview Agent',
           arguments: [foundDept, agentId]
         };
@@ -195,7 +196,7 @@ export class AvailableAgentsProvider implements vscode.TreeDataProvider<AgentTre
       }
 
       item.command = {
-        command: 'agentkit.previewAgent',
+        command: COMMANDS.PREVIEW_AGENT,
         title: 'Preview Agent',
         arguments: [departmentId, agentName]
       };

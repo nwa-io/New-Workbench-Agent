@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { COMMANDS } from '../utils/constants';
 
 export type AgentTreeItemType = 'department' | 'agent' | 'favorites-section' | 'favorite-agent';
 
@@ -32,7 +33,7 @@ export class AgentTreeItem extends vscode.TreeItem {
       // Pass only the agentPath, not the entire object
       if (agentPath) {
         this.command = {
-          command: 'agentkit.viewAgent',
+          command: COMMANDS.VIEW_AGENT,
           title: 'View Agent',
           arguments: [agentPath] // Only pass the path string
         };

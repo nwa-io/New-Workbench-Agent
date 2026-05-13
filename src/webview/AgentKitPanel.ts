@@ -3,6 +3,7 @@ import { AgentKitService } from '../services/AgentKitService';
 import { FileSystemService } from '../services/FileSystemService';
 import { ConfigService } from '../services/ConfigService';
 import { logger } from '../utils/logger';
+import { COMMANDS } from '../utils/constants';
 import { getWebviewContent } from './webviewContent';
 
 export class AgentKitPanel {
@@ -102,7 +103,7 @@ export class AgentKitPanel {
       // Refresh favorites in webview
       await this.handleGetFavorites();
       // Refresh the available agents tree view
-      vscode.commands.executeCommand('agentkit.refreshAgents');
+      vscode.commands.executeCommand(COMMANDS.REFRESH_AGENTS);
     } catch (error: any) {
       logger.error('Error toggling favorite', error);
     }
@@ -159,7 +160,7 @@ export class AgentKitPanel {
       }
 
       this._panel.webview.postMessage({ command: 'installComplete' });
-      vscode.commands.executeCommand('agentkit.refreshAgents');
+      vscode.commands.executeCommand(COMMANDS.REFRESH_AGENTS);
 
     } catch (error: any) {
       logger.error('Error installing agents', error);
