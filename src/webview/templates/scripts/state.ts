@@ -42,7 +42,8 @@ let detailModalState = {
 let workflowRunState = {
   status: 'idle',
   pendingRun: false,
-  message: ''
+  message: '',
+  errorTooltips: {}
 };
 let taskState = {
   mode: currentMode,
@@ -50,6 +51,7 @@ let taskState = {
   currentWorkflow: undefined,
   projectFolder: '.project',
   documentsFolder: '',
+  sourceDocuments: [],
   documents: [],
   nodes: [],
   workflows: []

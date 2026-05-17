@@ -92,6 +92,7 @@ export interface TaskManagerState {
   currentWorkflow?: WorkflowFile;
   projectFolder: string;
   documentsFolder: string;
+  sourceDocuments: TaskDocument[];
   documents: TaskDocument[];
   nodes: TaskProcessNode[];
   workflows: WorkflowFile[];
@@ -147,6 +148,26 @@ export interface TaskMarkdownRunRequest {
   mode?: TaskManagerMode;
   itemId?: string;
   itemType?: TaskItemType;
+}
+
+export interface TaskWorkflowRunRequest {
+  mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+  jiraLink?: string;
+}
+
+export interface TaskWorkflowStepDoneRequest {
+  mode?: TaskManagerMode;
+  itemId?: string;
+  itemType?: TaskItemType;
+  stepId?: string;
+  locator?: {
+    type?: string;
+    index?: number;
+    parentIndex?: number;
+    childIndex?: number;
+  };
 }
 
 export interface TaskJiraOpenRequest {

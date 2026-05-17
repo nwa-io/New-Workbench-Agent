@@ -62,9 +62,9 @@ window.addEventListener('message', event => {
   } else if (message.command === 'taskDocumentUploadComplete') {
     applyTaskState(message.data.state, true);
     refreshDetailView();
-    setUploadStatus('Saved ' + message.data.document.name);
+    setUploadStatus('Selected ' + message.data.document.name);
   } else if (message.command === 'taskDocumentUploadFailed') {
-    setUploadStatus(message.data.message || 'Document import failed.', true);
+    setUploadStatus(message.data.message || 'Document selection failed.', true);
   } else if (message.command === 'taskMarkdownLoaded') {
     applyTaskState(message.data.state, true);
     markdownDialogState.content = message.data.markdown.content || '';
@@ -157,6 +157,60 @@ window.addEventListener('message', event => {
     codeRunState.message = message.data.message || 'Claude Code terminal closed.';
     codeRunState.markdownPath = message.data.markdownPath || codeRunState.markdownPath;
     refreshDetailView();
+  } else if (message.command === 'taskWorkflowRunPrepared') {
+    if (message.data.state) {
+      applyTaskState(message.data.state, true);
+    }
+    setWorkflowFromRunMessage(message.data.workflow);
+    workflowRunState.status = 'running';
+    workflowRunState.pendingRun = false;
+    workflowRunState.message = 'Running workflow...';
+    codeRunState.isRunning = false;
+    codeRunState.isError = false;
+    codeRunState.message = '';
+    refreshDetailView();
+  } else if (message.command === 'taskWorkflowStatusChanged') {
+    updateWorkflowBlockStatus(message.data.blockId, message.data.status);
+    workflowRunState.status = 'running';
+    workflowRunState.pendingRun = false;
+    refreshDetailView();
+  } else if (message.command === 'taskWorkflowRunMessage') {
+    workflowRunState.message = message.data.message || workflowRunState.message;
+    renderTree();
+  } else if (message.command === 'taskWorkflowRunComplete') {
+    if (message.data.state) {
+      applyTaskState(message.data.state, true);
+    }
+    setWorkflowFromRunMessage(message.data.workflow);
+    workflowRunState.status = 'finished';
+    workflowRunState.pendingRun = false;
+    workflowRunState.message = 'Workflow completed.';
+    codeRunState.isRunning = false;
+    codeRunState.isError = false;
+    codeRunState.message = '';
+    refreshDetailView();
+  } else if (message.command === 'taskWorkflowRunFailed') {
+    if (message.data.state) {
+      applyTaskState(message.data.state, true);
+    }
+    setWorkflowFromRunMessage(message.data.workflow);
+    failTaskWorkflowRun(message.data.message || 'Workflow failed.', message.data.blockId);
+  } else if (message.command === 'taskWorkflowStepDoneComplete') {
+    applyTaskState(message.data.state, true);
+    setWorkflowFromRunMessage(message.data.workflow);
+    workflowRunState.message = 'Step marked completed.';
+    markdownDialogState.isRunning = false;
+    markdownDialogState.isError = false;
+    markdownDialogState.message = workflowRunState.message;
+    refreshDetailView();
+    renderMarkdownDialog();
+  } else if (message.command === 'taskWorkflowStepDoneFailed') {
+    markdownDialogState.isRunning = false;
+    markdownDialogState.isError = true;
+    markdownDialogState.message = message.data.message || 'Unable to mark step completed.';
+    showWorkflowErrorPopup(markdownDialogState.message);
+    refreshDetailView();
+    renderMarkdownDialog();
   } else if (message.command === 'figmaTaskLinkSyncComplete') {
     applyTaskState(message.data.state, true);
     figmaFormState.isSyncing = false;
@@ -193,7 +247,7 @@ window.addEventListener('message', event => {
     jiraFormState.isReading = false;
     jiraFormState.isError = false;
     jiraFormState.link = message.data.connection.link || jiraFormState.link;
-    jiraFormState.message = 'Chrome opened. Log in to Jira there if needed, then click Read ticket.';
+    jiraFormState.message = 'Chrome opened. Log in to Jira there if needed, then click RUN.';
     refreshDetailView();
   } else if (message.command === 'jiraOpenFailed') {
     jiraFormState.isOpening = false;

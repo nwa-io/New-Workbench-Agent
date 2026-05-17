@@ -7,7 +7,6 @@ function renderJiraDetail(detail, activeNode) {
   }
 
   const status = activeNode?.status || 'Un-sync';
-  const isBusy = jiraFormState.isOpening || jiraFormState.isReading;
   const syncStatus = jiraFormState.message
     ? \`<p class="jira-sync-status\${jiraFormState.isError ? ' error' : ''}">\${escapeHtml(jiraFormState.message)}</p>\`
     : '';
@@ -17,18 +16,13 @@ function renderJiraDetail(detail, activeNode) {
     <div class="detail-header">
       <h2>\${escapeHtml(activeNode?.label || 'Jira')}</h2>
       <span class="status-badge status-\${statusClass(status)}">\${escapeHtml(status)}</span>
-      <p class="detail-copy">Open Jira with Playwright Chrome, keep the login in the extension profile, then read the ticket page content.</p>
+      <p class="detail-copy">Paste a Jira ticket URL. The workflow reads the ticket when RUN reaches this step.</p>
     </div>
 
     <label class="form-field" for="jiraTaskLinkInput">
       <span>Jira ticket URL</span>
       <input id="jiraTaskLinkInput" type="url" inputmode="url" autocomplete="off" placeholder="https://your-domain.atlassian.net/browse/KEY-123" value="\${escapeHtml(jiraFormState.link)}">
     </label>
-
-    <div class="jira-actions">
-      <button id="jiraOpenBtn" type="button" \${isBusy ? 'disabled' : ''}>Open Chrome</button>
-      <button id="jiraReadBtn" type="button" \${isBusy ? 'disabled' : ''}>Read ticket</button>
-    </div>
     \${syncStatus}
 
     \${ticketPanel}
@@ -45,19 +39,10 @@ function bindJiraDetail() {
     };
     linkInput.onkeydown = event => {
       if (event.key === 'Enter') {
-        handleOpenJira();
+        event.preventDefault();
+        linkInput.blur();
       }
     };
-  }
-
-  const openButton = document.getElementById('jiraOpenBtn');
-  if (openButton) {
-    openButton.onclick = handleOpenJira;
-  }
-
-  const readButton = document.getElementById('jiraReadBtn');
-  if (readButton) {
-    readButton.onclick = handleReadJiraTicket;
   }
 }
 
@@ -68,72 +53,6 @@ function captureJiraFields() {
   }
 }
 
-function handleOpenJira() {
-  captureJiraFields();
-
-  if (jiraFormState.isOpening || jiraFormState.isReading) {
-    return;
-  }
-
-  if (!jiraFormState.link.trim()) {
-    jiraFormState.message = 'Paste a Jira ticket URL before opening Chrome.';
-    jiraFormState.isError = true;
-    renderDetail();
-    setTimeout(focusJiraLinkInput, 0);
-    return;
-  }
-
-  jiraFormState.isOpening = true;
-  jiraFormState.message = 'Opening Playwright Chrome...';
-  jiraFormState.isError = false;
-  renderDetail();
-
-  vscode.postMessage({
-    command: 'openJiraInChrome',
-    data: getTaskRequestContext({
-      link: jiraFormState.link.trim()
-    })
-  });
-}
-
-function handleReadJiraTicket() {
-  captureJiraFields();
-
-  if (jiraFormState.isOpening || jiraFormState.isReading) {
-    return;
-  }
-
-  if (!jiraFormState.link.trim()) {
-    jiraFormState.message = 'Paste a Jira ticket URL before reading the page.';
-    jiraFormState.isError = true;
-    renderDetail();
-    setTimeout(focusJiraLinkInput, 0);
-    return;
-  }
-
-  jiraFormState.isReading = true;
-  jiraFormState.message = 'Reading Jira ticket content...';
-  jiraFormState.isError = false;
-  renderDetail();
-
-  vscode.postMessage({
-    command: 'readJiraTicket',
-    data: getTaskRequestContext({
-      link: jiraFormState.link.trim()
-    })
-  });
-}
-
-function focusJiraLinkInput() {
-  const linkInput = document.getElementById('jiraTaskLinkInput');
-  if (!linkInput) {
-    return;
-  }
-
-  linkInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  linkInput.focus();
-}
-
 function getJiraTicketPanelHtml(connection) {
   if (!connection || !connection.ticket) {
     return \`
@@ -142,7 +61,7 @@ function getJiraTicketPanelHtml(connection) {
           <h3>Ticket content</h3>
           <span>Not read</span>
         </div>
-        <p class="empty-state">Open Chrome, log in to Jira if needed, then read the ticket.</p>
+        <p class="empty-state">Click RUN on the workflow board to read this Jira ticket.</p>
       </div>
     \`;
   }

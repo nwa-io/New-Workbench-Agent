@@ -2,7 +2,19 @@ export function getDocumentDetailScript(): string {
   return `
 function renderDocumentDetail(detail) {
   const copy = getActiveModeCopy();
+  const sourceDocuments = taskState.sourceDocuments || [];
   const documents = taskState.documents || [];
+  const sourceDocumentItems = sourceDocuments.length > 0
+    ? sourceDocuments.map((document, index) => \`
+      <div class="document-item">
+        <div>
+          <div class="document-name">\${escapeHtml(document.name)}</div>
+          <div class="document-path">\${escapeHtml(document.workspacePath)}</div>
+        </div>
+        <button class="secondary link-button" type="button" data-source-doc-index="\${index}">Open</button>
+      </div>
+    \`).join('')
+    : '<p class="empty-state">No source documents selected yet.</p>';
   const documentItems = documents.length > 0
     ? documents.map((document, index) => \`
       <div class="document-item">
@@ -13,7 +25,7 @@ function renderDocumentDetail(detail) {
         <button class="secondary link-button" type="button" data-doc-index="\${index}">Open</button>
       </div>
     \`).join('')
-    : '<p class="empty-state">No markdown documents imported yet.</p>';
+    : '<p class="empty-state">No markdown generated yet. Click RUN to convert selected files.</p>';
 
   detail.innerHTML = \`
     <div class="detail-header">
@@ -24,7 +36,7 @@ function renderDocumentDetail(detail) {
     <div class="drop-zone" id="documentDropZone">
       <div>
         <div class="drop-title">Drop documents here</div>
-        <div class="drop-copy">Files are converted to markdown with markitdown and saved in .project/docs.</div>
+        <div class="drop-copy">Files are saved to .project/docs. RUN converts them to markdown with markitdown.</div>
         <button type="button" id="chooseDocumentBtn">Choose files</button>
         <input type="file" id="documentFileInput" multiple hidden
           accept=".md,.markdown,.txt,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.html,.htm,.csv,.json,.xml">
@@ -33,7 +45,12 @@ function renderDocumentDetail(detail) {
     </div>
 
     <div class="document-list">
-      <h3>Imported markdown</h3>
+      <h3>Selected source files</h3>
+      \${sourceDocumentItems}
+    </div>
+
+    <div class="document-list">
+      <h3>Generated markdown</h3>
       \${documentItems}
     </div>
   \`;
@@ -70,9 +87,23 @@ function bindDocumentDropzone() {
 }
 
 function bindDocumentOpenButtons() {
+  document.querySelectorAll('[data-source-doc-index]').forEach(button => {
+    button.onclick = () => {
+      const documentItem = (taskState.sourceDocuments || [])[Number(button.dataset.sourceDocIndex)];
+      if (!documentItem) {
+        return;
+      }
+
+      vscode.postMessage({
+        command: 'openTaskDocument',
+        data: { workspacePath: documentItem.workspacePath }
+      });
+    };
+  });
+
   document.querySelectorAll('[data-doc-index]').forEach(button => {
     button.onclick = () => {
-      const documentItem = taskState.documents[Number(button.dataset.docIndex)];
+      const documentItem = (taskState.documents || [])[Number(button.dataset.docIndex)];
       if (!documentItem) {
         return;
       }
@@ -90,7 +121,7 @@ async function uploadFiles(files) {
     return;
   }
 
-  setUploadStatus(\`Importing \${files.length} file\${files.length === 1 ? '' : 's'}...\`);
+  setUploadStatus(\`Selecting \${files.length} file\${files.length === 1 ? '' : 's'}...\`);
 
   for (const file of files) {
     try {

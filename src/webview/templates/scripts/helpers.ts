@@ -185,6 +185,8 @@ function applyTaskState(nextState, keepListItem = false) {
   taskState = nextState || taskState;
   taskItems = Array.isArray(taskState.items) ? taskState.items : [];
   taskState.workflows = Array.isArray(taskState.workflows) ? taskState.workflows : [];
+  taskState.sourceDocuments = Array.isArray(taskState.sourceDocuments) ? taskState.sourceDocuments : [];
+  taskState.documents = Array.isArray(taskState.documents) ? taskState.documents : [];
   taskState.currentWorkflow = taskState.currentWorkflow || undefined;
   currentMode = taskState.mode || currentMode;
   if (currentView === 'create') {

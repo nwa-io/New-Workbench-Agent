@@ -25,6 +25,7 @@ function resetDetailFormState() {
   workflowRunState.status = 'idle';
   workflowRunState.pendingRun = false;
   workflowRunState.message = '';
+  workflowRunState.errorTooltips = {};
 }
 
 function renderTree() {
@@ -164,7 +165,7 @@ function getWorkflowDetailParallelHtml(block, locator) {
   const selectedClass = selectedWorkflowStepKey === workflowLocatorKey(locator) ? ' selected' : '';
   const status = getWorkflowBlockDisplayStatus(block);
   const title = getWorkflowDetailTaskTitle(block.title || 'Parallel');
-  const completedIcon = getWorkflowCompletedIconHtml();
+  const completedIcon = getWorkflowCompletedIconHtml(status);
   const childrenHtml = children.length > 0
     ? children.map((child, childIndex) => getWorkflowDetailStepHtml(child, {
       type: 'parallel-child',
@@ -198,8 +199,9 @@ function getWorkflowDetailStepHtml(step, locator) {
   const stepType = formatStepType(step.stepType);
   const title = getWorkflowDetailTaskTitle(step.title || getWorkflowStepTitle(step.stepType));
   const runningDisabled = getWorkflowRunStatus() === 'running';
-  const completedIcon = getWorkflowCompletedIconHtml();
+  const completedIcon = getWorkflowCompletedIconHtml(status);
   const runningBorder = getWorkflowRunningBorderHtml();
+  const errorTooltip = getWorkflowErrorTooltipHtml(step);
 
   return \`
     <button class="workflow-detail-block-wrap step-wrap\${selectedClass}" type="button" data-workflow-step-locator='\${workflowLocatorAttr(locator)}' aria-label="\${escapeHtml(title + ', status ' + status)}"\${runningDisabled ? ' disabled' : ''}>
@@ -211,11 +213,14 @@ function getWorkflowDetailStepHtml(step, locator) {
       </span>
       <span class="workflow-detail-label" title="\${escapeHtml(title)}">\${escapeHtml(title)}</span>
       <span class="workflow-detail-sublabel">\${escapeHtml(stepType)}</span>
+      \${errorTooltip}
     </button>
   \`;
 }
 
 function bindWorkflowDetailTree() {
+  bindWorkflowErrorTooltipActions();
+
   if (getWorkflowRunStatus() === 'running') {
     return;
   }
@@ -250,6 +255,16 @@ function bindWorkflowDetailTree() {
   });
 }
 
+function bindWorkflowErrorTooltipActions() {
+  document.querySelectorAll('[data-workflow-error-close]').forEach(close => {
+    close.onclick = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeWorkflowErrorTooltip(close.dataset.workflowErrorClose);
+    };
+  });
+}
+
 function bindWorkflowDetailActions() {
   const runButton = document.getElementById('taskWorkflowRunButton');
   if (!runButton) {
@@ -264,7 +279,7 @@ function bindWorkflowDetailActions() {
     }
 
     if (runStatus === 'running') {
-      workflowRunState.message = 'Close the Claude Code terminal to stop this run.';
+      workflowRunState.message = 'Workflow run is already in progress.';
       renderTree();
     }
   };
@@ -273,7 +288,7 @@ function bindWorkflowDetailActions() {
 function getWorkflowActionBarHtml(runStatus) {
   const labels = {
     idle: 'RUN',
-    running: 'STOP',
+    running: 'RUNNING',
     finished: 'COMPLETED'
   };
   const message = workflowRunState.message
@@ -284,35 +299,52 @@ function getWorkflowActionBarHtml(runStatus) {
     <div class="workflow-detail-actionbar">
       <div class="workflow-detail-actions">
         \${message}
-        <button id="taskWorkflowRunButton" class="workflow-run-button \${runStatus}" type="button">\${labels[runStatus] || labels.idle}</button>
+        <button id="taskWorkflowRunButton" class="workflow-run-button \${runStatus}" type="button"\${runStatus === 'running' ? ' disabled' : ''}>\${labels[runStatus] || labels.idle}</button>
       </div>
     </div>
   \`;
 }
 
 function startWorkflowRunFromAction() {
+  const workflow = getActiveTaskWorkflow();
+  const blocks = workflow && Array.isArray(workflow.blocks) ? workflow.blocks : [];
+  if (!workflow || blocks.length === 0) {
+    failTaskWorkflowRun('Add at least one workflow step before running this item.');
+    return;
+  }
+
+  taskState.currentWorkflow = workflow;
   workflowRunState.status = 'running';
-  workflowRunState.pendingRun = true;
-  workflowRunState.message = 'Preparing markdown brief...';
+  workflowRunState.pendingRun = false;
+  workflowRunState.message = 'Running workflow...';
+  workflowRunState.errorTooltips = {};
   markdownDialogState.isOpen = false;
-  markdownDialogState.isLoading = true;
+  markdownDialogState.isLoading = false;
   markdownDialogState.isRunning = false;
   markdownDialogState.isError = false;
-  codeRunState.isRunning = true;
+  codeRunState.isRunning = false;
   codeRunState.isError = false;
-  codeRunState.message = 'Preparing markdown brief...';
+  codeRunState.message = '';
   codeRunState.markdownPath = '';
   selectedWorkflowStepKey = '';
   selectedWorkflowStep = null;
-  selectedNodeId = 'code';
   detailModalState.isOpen = false;
   renderMarkdownDialog();
   refreshDetailView();
 
   vscode.postMessage({
-    command: 'getTaskMarkdown',
-    data: getTaskRequestContext()
+    command: 'runTaskWorkflow',
+    data: getWorkflowRunRequestContext()
   });
+}
+
+function getWorkflowRunRequestContext() {
+  if (typeof captureJiraFields === 'function') {
+    captureJiraFields();
+  }
+
+  const jiraLink = String(jiraFormState.link || taskState.jira?.link || '').trim();
+  return getTaskRequestContext({ jiraLink });
 }
 
 function runWorkflowMarkdownContent(content) {
@@ -364,6 +396,59 @@ function failWorkflowRun(message) {
   selectedNodeId = 'code';
   detailModalState.isOpen = true;
   refreshDetailView();
+}
+
+function failTaskWorkflowRun(message, blockId) {
+  workflowRunState.status = 'idle';
+  workflowRunState.pendingRun = false;
+  workflowRunState.message = message || 'Workflow failed.';
+  markdownDialogState.isLoading = false;
+  markdownDialogState.isRunning = false;
+  markdownDialogState.isError = true;
+  markdownDialogState.message = workflowRunState.message;
+  codeRunState.isRunning = false;
+  codeRunState.isError = true;
+  codeRunState.message = workflowRunState.message;
+  detailModalState.isOpen = false;
+  const tooltipHandled = showWorkflowErrorTooltipForBlock(blockId, workflowRunState.message);
+  refreshDetailView();
+  if (!tooltipHandled) {
+    showWorkflowErrorPopup(workflowRunState.message);
+  }
+}
+
+function showWorkflowErrorTooltipForBlock(blockId, message) {
+  const block = findWorkflowBlockById(getActiveTaskWorkflow(), blockId);
+  if (!block || block.kind !== 'step' || !['collect_jira', 'review_human'].includes(block.stepType)) {
+    return false;
+  }
+
+  workflowRunState.errorTooltips = Object.assign({}, workflowRunState.errorTooltips || {}, {
+    [blockId]: getWorkflowErrorTooltipMessage(message)
+  });
+  return true;
+}
+
+function closeWorkflowErrorTooltip(blockId) {
+  if (!blockId || !workflowRunState.errorTooltips) {
+    return;
+  }
+
+  const nextTooltips = Object.assign({}, workflowRunState.errorTooltips);
+  delete nextTooltips[blockId];
+  workflowRunState.errorTooltips = nextTooltips;
+  renderTree();
+}
+
+function showWorkflowErrorPopup(message) {
+  const text = String(message || 'Workflow failed.').trim();
+  if (!text) {
+    return;
+  }
+
+  setTimeout(() => {
+    window.alert(text);
+  }, 0);
 }
 
 function openWorkflowStepDetail(block, locator) {
@@ -521,18 +606,33 @@ function getWorkflowConfigPreview(config) {
 
 function renderMarkdownDetail(detail, activeNode) {
   const status = activeNode?.status || 'Missing';
+  const isReviewHumanStep = selectedWorkflowStep?.kind === 'step' && selectedWorkflowStep.stepType === 'review_human';
+  const actionHtml = isReviewHumanStep
+    ? \`
+      <div class="detail-action-row">
+        <button id="markReviewHumanDoneBtn" type="button">Mark it done</button>
+        <button class="secondary" id="openMarkdownDialogBtn" type="button">Open markdown</button>
+      </div>
+    \`
+    : '<button id="openMarkdownDialogBtn" type="button">Open markdown</button>';
+
   detail.innerHTML = \`
     <div class="detail-header">
       <h2>\${escapeHtml(activeNode?.label || 'Markdown')}</h2>
       <span class="status-badge status-\${statusClass(status)}">\${escapeHtml(status)}</span>
       <p class="detail-copy">Condensed implementation brief from imported documents, selected Figma nodes, and Jira content.</p>
     </div>
-    <button id="openMarkdownDialogBtn" type="button">Open markdown</button>
+    \${actionHtml}
   \`;
 
   const openButton = document.getElementById('openMarkdownDialogBtn');
   if (openButton) {
     openButton.onclick = openMarkdownDialog;
+  }
+
+  const markDoneButton = document.getElementById('markReviewHumanDoneBtn');
+  if (markDoneButton) {
+    markDoneButton.onclick = markSelectedWorkflowStepDone;
   }
 }
 
@@ -559,6 +659,124 @@ function renderCodeDetail(detail, activeNode) {
       <p class="code-run-status">\${escapeHtml(message)}</p>
     </div>
   \`;
+}
+
+function markSelectedWorkflowStepDone() {
+  if (!selectedWorkflowStep || selectedWorkflowStep.kind !== 'step') {
+    return;
+  }
+
+  selectedWorkflowStep.status = 'success';
+  updateSelectedWorkflowParentStatus();
+  closeWorkflowErrorTooltip(selectedWorkflowStep.id);
+  workflowRunState.message = 'Marked "' + (selectedWorkflowStep.title || getWorkflowStepTitle(selectedWorkflowStep.stepType)) + '" completed.';
+  markdownDialogState.isOpen = false;
+  markdownDialogState.isLoading = false;
+  markdownDialogState.isRunning = false;
+  markdownDialogState.isError = false;
+  markdownDialogState.message = workflowRunState.message;
+  refreshDetailView();
+  renderMarkdownDialog();
+
+  vscode.postMessage({
+    command: 'markWorkflowStepDone',
+    data: getTaskRequestContext({
+      stepId: selectedWorkflowStep.id,
+      locator: getSelectedWorkflowLocator()
+    })
+  });
+}
+
+function getWorkflowErrorTooltipHtml(step) {
+  const message = step?.id ? workflowRunState.errorTooltips?.[step.id] : '';
+  if (!message) {
+    return '';
+  }
+
+  return \`
+    <span class="workflow-error-tooltip" role="status">
+      <span class="workflow-error-tooltip-text">\${escapeHtml(getWorkflowErrorTooltipMessage(message))}</span>
+      <span class="workflow-error-tooltip-close" role="button" tabindex="0" aria-label="Close error" data-workflow-error-close="\${escapeHtml(step.id)}">x</span>
+    </span>
+  \`;
+}
+
+function getWorkflowErrorTooltipMessage(message) {
+  return String(message || 'Workflow failed.')
+    .replace(/^WorkflowRunError:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+}
+
+function updateSelectedWorkflowParentStatus() {
+  const locator = getSelectedWorkflowLocator();
+  if (!locator || locator.type !== 'parallel-child') {
+    return;
+  }
+
+  const parent = getWorkflowBlockByLocator({
+    type: 'root',
+    index: locator.parentIndex
+  });
+  if (!parent || parent.kind !== 'parallel') {
+    return;
+  }
+
+  parent.status = parent.children.every(child => child.status === 'success' || child.status === 'skipped')
+    ? 'success'
+    : 'idle';
+}
+
+function getSelectedWorkflowLocator() {
+  if (!selectedWorkflowStepKey) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(selectedWorkflowStepKey);
+  } catch {
+    return null;
+  }
+}
+
+function setWorkflowFromRunMessage(workflow) {
+  if (!workflow || !Array.isArray(workflow.blocks)) {
+    return;
+  }
+
+  taskState.currentWorkflow = workflow;
+}
+
+function updateWorkflowBlockStatus(blockId, status) {
+  const workflow = getActiveTaskWorkflow();
+  if (!workflow || !blockId) {
+    return;
+  }
+
+  const block = findWorkflowBlockById(workflow, blockId);
+  if (block) {
+    block.status = status;
+  }
+}
+
+function findWorkflowBlockById(workflow, blockId) {
+  const blocks = Array.isArray(workflow.blocks) ? workflow.blocks : [];
+
+  for (const block of blocks) {
+    if (block.id === blockId) {
+      return block;
+    }
+
+    if (block.kind === 'parallel') {
+      const child = block.children.find(candidate => candidate.id === blockId);
+      if (child) {
+        return child;
+      }
+    }
+  }
+
+  return null;
 }
 
 function getWorkflowBlockByLocator(locator) {
@@ -659,8 +877,8 @@ function getWorkflowRunStatus() {
   return 'idle';
 }
 
-function getWorkflowCompletedIconHtml() {
-  if (getWorkflowRunStatus() !== 'finished') {
+function getWorkflowCompletedIconHtml(status) {
+  if (statusClass(status) !== 'completed') {
     return '';
   }
 
@@ -672,15 +890,6 @@ function getWorkflowRunningBorderHtml() {
 }
 
 function getWorkflowBlockDisplayStatus(block) {
-  const runStatus = getWorkflowRunStatus();
-  if (runStatus === 'running') {
-    return 'Running';
-  }
-
-  if (runStatus === 'finished') {
-    return 'Completed';
-  }
-
   if (!block) {
     return 'Unknown';
   }
@@ -694,7 +903,7 @@ function getWorkflowBlockDisplayStatus(block) {
   }
 
   if (block.status === 'success') {
-    return 'Ready';
+    return 'Completed';
   }
 
   if (block.status === 'skipped') {
@@ -705,15 +914,6 @@ function getWorkflowBlockDisplayStatus(block) {
 }
 
 function getWorkflowStepDisplayStatus(step, processNode) {
-  const runStatus = getWorkflowRunStatus();
-  if (runStatus === 'running') {
-    return 'Running';
-  }
-
-  if (runStatus === 'finished') {
-    return 'Completed';
-  }
-
   if (step?.status === 'running') {
     return 'Running';
   }
@@ -727,7 +927,7 @@ function getWorkflowStepDisplayStatus(step, processNode) {
   }
 
   if (step?.status === 'success') {
-    return 'Ready';
+    return 'Completed';
   }
 
   if (step?.stepType === 'custom' && codeRunState.isRunning) {

@@ -686,7 +686,8 @@ export const taskStyles = [
 }
 
 .workflow-detail-card.status-ready,
-.workflow-detail-card.status-sync {
+.workflow-detail-card.status-sync,
+.workflow-detail-card.status-completed {
   border-color: rgba(34, 197, 94, 0.72);
 }
 
@@ -702,11 +703,6 @@ export const taskStyles = [
 
 .workflow-detail-card.status-failed {
   border-color: var(--vscode-inputValidation-errorBorder);
-}
-
-.workflow-detail-canvas.run-running .workflow-detail-card {
-  border-color: rgba(245, 158, 11, 0.42);
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.16), 0 14px 34px rgba(0, 0, 0, 0.34);
 }
 
 .workflow-detail-running-border {
@@ -739,15 +735,8 @@ export const taskStyles = [
   animation: workflow-border-track 1.9s linear infinite;
 }
 
-.workflow-detail-card.status-running .workflow-detail-running-border,
-.workflow-detail-canvas.run-running .workflow-detail-card .workflow-detail-running-border {
+.workflow-detail-card.status-running .workflow-detail-running-border {
   opacity: 1;
-}
-
-.workflow-detail-canvas.run-finished .workflow-detail-card,
-.workflow-detail-canvas.run-finished .workflow-detail-parallel {
-  border-color: rgba(34, 197, 94, 0.88);
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18), 0 14px 34px rgba(0, 0, 0, 0.34);
 }
 
 .workflow-detail-completed-icon {
@@ -829,6 +818,68 @@ export const taskStyles = [
   text-align: center;
 }
 
+.workflow-error-tooltip {
+  position: absolute;
+  left: calc(50% + 66px);
+  top: 18px;
+  z-index: 4;
+  display: flex;
+  width: 230px;
+  min-height: 44px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 10px;
+  color: var(--vscode-inputValidation-errorForeground);
+  background: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  border-radius: 8px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36);
+  pointer-events: auto;
+}
+
+.workflow-error-tooltip::before {
+  position: absolute;
+  left: -6px;
+  top: 15px;
+  width: 10px;
+  height: 10px;
+  content: '';
+  background: var(--vscode-inputValidation-errorBackground);
+  border-left: 1px solid var(--vscode-inputValidation-errorBorder);
+  border-bottom: 1px solid var(--vscode-inputValidation-errorBorder);
+  transform: rotate(45deg);
+}
+
+.workflow-error-tooltip-text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  word-break: break-word;
+}
+
+.workflow-error-tooltip-close {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.workflow-error-tooltip-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .workflow-detail-block-wrap.parallel-wrap {
   width: auto;
 }
@@ -868,7 +919,8 @@ export const taskStyles = [
 }
 
 .workflow-detail-parallel.status-ready,
-.workflow-detail-parallel.status-sync {
+.workflow-detail-parallel.status-sync,
+.workflow-detail-parallel.status-completed {
   border-color: rgba(34, 197, 94, 0.72);
 }
 
@@ -942,6 +994,7 @@ export const taskStyles = [
 
   rule('.detail-header', 'mb-[16px]'),
   rule('.detail-header h2', 'mb-[6px]'),
+  rule('.detail-action-row', 'flex flex-wrap gap-[8px] items-center'),
   rule('.code-run-panel', 'grid gap-[12px] p-[14px] bg-[var(--vscode-input-background)] border-[1px_solid_var(--vscode-panel-border)] rounded-lg'),
   rule('.code-run-panel.running', 'border-color-[rgba(34,_197,_94,_0.72)] shadow-[inset_3px_0_0_#22c55e]'),
   rule('.code-run-panel.error', 'border-color-[var(--vscode-inputValidation-errorBorder)] shadow-[inset_3px_0_0_var(--vscode-inputValidation-errorBorder)]'),

@@ -74,6 +74,11 @@ function regenerateMarkdownDialog() {
 function runMarkdownDialog() {
   captureMarkdownEditor();
 
+  if (isReviewHumanStepSelected()) {
+    markSelectedWorkflowStepDone();
+    return;
+  }
+
   if (markdownDialogState.isLoading || markdownDialogState.isRunning) {
     return;
   }
@@ -86,6 +91,10 @@ function runMarkdownDialog() {
   }
 
   runWorkflowMarkdownContent(markdownDialogState.content);
+}
+
+function isReviewHumanStepSelected() {
+  return Boolean(selectedWorkflowStep && selectedWorkflowStep.kind === 'step' && selectedWorkflowStep.stepType === 'review_human');
 }
 
 function renderMarkdownDialog() {
@@ -105,6 +114,7 @@ function renderMarkdownDialog() {
   const saveButtonHtml = markdownDialogState.mode === 'edit'
     ? \`<button id="saveMarkdownDialogBtn" type="button" \${markdownDialogState.isSaving ? 'disabled' : ''}>Save</button>\`
     : '';
+  const primaryActionLabel = isReviewHumanStepSelected() ? 'Mark it done' : 'Run';
   const dialogHtml = \`
     <div class="markdown-dialog-backdrop" id="taskMarkdownDialog">
       <div class="markdown-dialog" role="dialog" aria-modal="true" aria-label="Markdown brief">
@@ -129,7 +139,7 @@ function renderMarkdownDialog() {
         <div class="markdown-dialog-actions">
           <button class="secondary" id="cancelMarkdownDialogBtn" type="button">Close</button>
           \${saveButtonHtml}
-          <button id="runMarkdownDialogBtn" type="button" \${markdownDialogState.isLoading || markdownDialogState.isRunning ? 'disabled' : ''}>Run</button>
+          <button id="runMarkdownDialogBtn" type="button" \${markdownDialogState.isLoading || markdownDialogState.isRunning ? 'disabled' : ''}>\${primaryActionLabel}</button>
         </div>
       </div>
     </div>

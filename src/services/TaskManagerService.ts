@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as fs from 'fs/promises';
 import * as https from 'https';
 import type { BrowserContext, Page } from 'playwright';
-import { execFile } from 'child_process';
+import { execFile, spawn } from 'child_process';
 import { createRequire } from 'module';
 import { promisify } from 'util';
 import { ConfigService } from './ConfigService';
@@ -13,7 +13,14 @@ import { MemoryService } from '../features/memory/MemoryService';
 import { compressAgentText } from '../features/compression';
 import { WorkflowStorageService } from '../features/workflows/WorkflowStorageService';
 import { parseWorkflow, stringifyWorkflow } from '../features/workflows/yaml';
-import type { WorkflowBlock, WorkflowFile, WorkflowStepBlock, WorkflowStepType } from '../features/workflows/types';
+import {
+  WORKFLOW_FILE_VERSION,
+  type WorkflowBlock,
+  type WorkflowFile,
+  type WorkflowParallelBlock,
+  type WorkflowStepBlock,
+  type WorkflowStepType
+} from '../features/workflows/types';
 import { logger } from '../utils/logger';
 import {
   TaskDocument,
@@ -34,6 +41,8 @@ import {
   TaskMarkdownContent,
   TaskMarkdownRequest,
   TaskMarkdownUpdateRequest,
+  TaskWorkflowRunRequest,
+  TaskWorkflowStepDoneRequest,
   TaskManagerItem,
   TaskManagerMode,
   TaskManagerState,
@@ -47,10 +56,20 @@ const MARKITDOWN_MAX_BUFFER = 100 * 1024 * 1024;
 const FIGMA_NODE_LIST_MAX_DEPTH = 2;
 const JIRA_BROWSER_PROFILE_FOLDER = 'jira-playwright-profile';
 const JIRA_PAGE_TIMEOUT_MS = 60000;
+const JIRA_EMPTY_CONTENT_RETRY_ATTEMPTS = 12;
+const JIRA_EMPTY_CONTENT_RETRY_DELAY_MS = 10000;
+const JIRA_EMPTY_CONTENT_ERROR = 'No Jira title, description, or comments were found on the current page.';
 const TASK_MARKDOWN_DOCUMENT_LIMIT = 5;
 const TASK_MARKDOWN_DOCUMENT_CHAR_LIMIT = 1400;
 const TASK_MARKDOWN_GUIDE_RELATIVE_PATH = ['webview', 'execution', 'condensed', 'guide.md'];
 const TASK_MARKDOWN_BUNDLED_GUIDE_RELATIVE_PATH = ['execution', 'condensed', 'guide.md'];
+const DOCUMENT_JUDGMENT_GUIDE_RELATIVE_PATH = ['webview', 'execution', 'condensed', 'judgment-doc.md'];
+const DOCUMENT_JUDGMENT_BUNDLED_GUIDE_RELATIVE_PATH = ['execution', 'condensed', 'judgment-doc.md'];
+const DOCUMENT_JUDGMENT_DOCUMENT_LIMIT = 8;
+const DOCUMENT_JUDGMENT_DOCUMENT_CHAR_LIMIT = 12000;
+const DOCUMENT_JUDGMENT_TIMEOUT_MS = 10 * 60 * 1000;
+const DOCUMENT_JUDGMENT_INPUT_FILE_NAME = '.document-judgment-input.md';
+const MARKITDOWN_TERMINAL_TIMEOUT_MS = 10 * 60 * 1000;
 export const JIRA_MARKDOWN_FILE_NAME = 'jira.md';
 export const TASK_ITEM_METADATA_FILE_NAME = 'item.json';
 export const TASK_ITEM_WORKFLOW_FILE_NAME = 'workflow.yaml';
@@ -82,6 +101,12 @@ interface MarkitdownCandidate {
   label: string;
 }
 
+interface MarkitdownTerminalJob {
+  name: string;
+  targetPath: string;
+  candidates: MarkitdownCandidate[];
+}
+
 interface ParsedFigmaLink {
   fileKey: string;
   link: string;
@@ -106,6 +131,7 @@ interface TaskItemMetadata {
   id: string;
   type: TaskItemType;
   workflowId?: string;
+  sourceDocuments?: string[];
   createdAt?: string;
   updatedAt: string;
 }
@@ -165,6 +191,7 @@ export class TaskManagerService {
         currentWorkflow: undefined,
         projectFolder: PROJECT_FOLDER,
         documentsFolder: this.getDocumentsRelativeFolder(),
+        sourceDocuments: [],
         documents: [],
         nodes: this.getProcessNodes('Unknown', 'Missing'),
         workflows,
@@ -179,6 +206,9 @@ export class TaskManagerService {
     const documentsFolder = this.getDocumentsRelativeFolder();
     const documentsFolderUri = vscode.Uri.joinPath(workspaceFolder, ...documentsFolder.split('/'));
     const documents = await this.listMarkdownDocuments(workspaceFolder, documentsFolderUri);
+    const sourceDocuments = currentItem
+      ? await this.listTaskSourceDocuments(workspaceFolder, documentsFolderUri, currentItem)
+      : [];
     const documentStatus = documents.length > 0 ? 'Ready' : 'Missing';
     const isSameItem = Boolean(currentItem && this.currentItem?.id === currentItem.id && this.currentItem?.type === currentItem.type);
     const loadedFigmaConnection = isSameItem ? this.figmaConnection : undefined;
@@ -205,6 +235,7 @@ export class TaskManagerService {
       currentWorkflow,
       projectFolder: PROJECT_FOLDER,
       documentsFolder,
+      sourceDocuments,
       documents,
       nodes: this.getProcessNodes(
         documentStatus,
@@ -327,11 +358,8 @@ export class TaskManagerService {
   }
 
   async importDocument(upload: TaskDocumentUpload): Promise<{ document: TaskDocument; state: TaskManagerState }> {
-    const workspaceFolder = await this.fileSystemService.getWorkspaceFolder();
-
-    if (!workspaceFolder) {
-      throw new Error('No workspace folder open');
-    }
+    const workspaceFolder = await this.requireWorkspaceFolder();
+    const item = await this.resolveOperationItem(workspaceFolder, upload.mode || 'task', upload);
 
     if (!upload.fileName || !upload.contentBase64) {
       throw new Error('Missing document upload data');
@@ -342,21 +370,16 @@ export class TaskManagerService {
     await vscode.workspace.fs.createDirectory(documentsFolderUri);
 
     const sourceBuffer = Buffer.from(upload.contentBase64, 'base64');
-    const parsedName = path.parse(upload.fileName);
-    const safeBaseName = this.getSafeBaseName(parsedName.name);
-    const targetUri = await this.getUniqueMarkdownUri(documentsFolderUri, safeBaseName);
-
-    if (this.isMarkdownFile(parsedName.ext)) {
-      await vscode.workspace.fs.writeFile(targetUri, sourceBuffer);
-    } else {
-      const markdown = await this.convertToMarkdown(sourceBuffer, safeBaseName, parsedName.ext);
-      await vscode.workspace.fs.writeFile(targetUri, Buffer.from(markdown, 'utf8'));
-    }
+    const safeFileName = this.getSafeDocumentFileName(upload.fileName);
+    const targetUri = await this.getUniqueSourceDocumentUri(documentsFolderUri, safeFileName);
+    await vscode.workspace.fs.writeFile(targetUri, sourceBuffer);
 
     const document = {
       name: path.basename(targetUri.fsPath),
       workspacePath: this.toWorkspacePath(workspaceFolder.fsPath, targetUri.fsPath)
     };
+
+    await this.appendTaskSourceDocument(workspaceFolder, item.type, item.id, document.workspacePath);
 
     const state = await this.getState(upload.mode || 'task', {
       itemId: upload.itemId,
@@ -485,6 +508,125 @@ export class TaskManagerService {
     };
   }
 
+  async getTaskWorkflowForRun(
+    request: TaskWorkflowRunRequest
+  ): Promise<{ workflow: WorkflowFile; state: TaskManagerState }> {
+    const workspaceFolder = await this.requireWorkspaceFolder();
+    const item = await this.resolveOperationItem(workspaceFolder, request.mode || 'task', request);
+    const workflow = await this.resolveTaskWorkflow(workspaceFolder, item);
+
+    if (workflow.blocks.length === 0) {
+      throw new Error('Add at least one workflow step before running this item.');
+    }
+
+    const state = await this.getState(TASK_TYPE_TO_MODE[item.type], {
+      itemId: item.id,
+      itemType: item.type
+    });
+
+    return { workflow, state };
+  }
+
+  async saveTaskWorkflow(
+    request: TaskWorkflowRunRequest,
+    workflow: WorkflowFile
+  ): Promise<{ workflow: WorkflowFile; state: TaskManagerState }> {
+    const workspaceFolder = await this.requireWorkspaceFolder();
+    const item = await this.resolveOperationItem(workspaceFolder, request.mode || 'task', request);
+
+    await this.writeTaskItemWorkflow(workspaceFolder, item.type, item.id, stringifyWorkflow(workflow));
+    const state = await this.getState(TASK_TYPE_TO_MODE[item.type], {
+      itemId: item.id,
+      itemType: item.type
+    });
+
+    return {
+      workflow: state.currentWorkflow || workflow,
+      state
+    };
+  }
+
+  async markWorkflowStepDone(
+    request: TaskWorkflowStepDoneRequest
+  ): Promise<{ workflow: WorkflowFile; state: TaskManagerState }> {
+    const workspaceFolder = await this.requireWorkspaceFolder();
+    const item = await this.resolveOperationItem(workspaceFolder, request.mode || 'task', request);
+    const workflow = await this.resolveTaskWorkflow(workspaceFolder, item);
+    const matched = this.findWorkflowStepForCompletion(workflow, request);
+
+    if (!matched) {
+      throw new Error('The selected workflow step was not found.');
+    }
+
+    matched.step.status = 'success';
+    if (matched.parent) {
+      matched.parent.status = matched.parent.children.every(child => child.status === 'success' || child.status === 'skipped')
+        ? 'success'
+        : 'idle';
+    }
+
+    await this.writeTaskItemWorkflow(workspaceFolder, item.type, item.id, stringifyWorkflow(workflow));
+    const state = await this.getState(TASK_TYPE_TO_MODE[item.type], {
+      itemId: item.id,
+      itemType: item.type
+    });
+
+    return {
+      workflow: state.currentWorkflow || workflow,
+      state
+    };
+  }
+
+  async judgeTaskDocumentsWithClaude(
+    request: TaskWorkflowRunRequest
+  ): Promise<{ ready: boolean; message: string; report: string }> {
+    const workspaceFolder = await this.requireWorkspaceFolder();
+    const item = await this.resolveOperationItem(workspaceFolder, request.mode || 'task', request);
+    const documentsFolder = this.getDocumentsRelativeFolder();
+    const documentsFolderUri = vscode.Uri.joinPath(workspaceFolder, ...documentsFolder.split('/'));
+    const documents = await this.prepareTaskDocumentsForJudgment(workspaceFolder, item, documentsFolderUri);
+
+    if (documents.length === 0) {
+      throw new Error('Select at least one document before running Collect Document.');
+    }
+
+    const guide = await this.getDocumentJudgmentGuide();
+    const prompt = await this.createDocumentJudgmentPrompt(workspaceFolder, documentsFolder, documents, guide);
+    const promptFile = await this.writeDocumentJudgmentInput(workspaceFolder, item, prompt);
+
+    try {
+      let report = await this.runClaudeDocumentJudgment(promptFile.workspacePath, workspaceFolder.fsPath);
+      let judgment = this.parseDocumentJudgmentReport(report);
+
+      if (!judgment.statusFound) {
+        const normalizedReport = await this.normalizeClaudeDocumentJudgmentReport(
+          report,
+          promptFile.workspacePath,
+          workspaceFolder.fsPath
+        );
+        report = [
+          report,
+          '',
+          '--- Normalized Judgment ---',
+          normalizedReport
+        ].join('\n');
+        judgment = this.parseDocumentJudgmentReport(normalizedReport);
+      }
+
+      if (!judgment.ready) {
+        throw new Error(judgment.message);
+      }
+
+      return {
+        ready: true,
+        message: judgment.message,
+        report
+      };
+    } finally {
+      await this.deleteDocumentJudgmentInput(promptFile.uri);
+    }
+  }
+
   async openJiraInChrome(
     request: TaskJiraOpenRequest
   ): Promise<{ connection: TaskJiraConnection; state: TaskManagerState }> {
@@ -519,10 +661,10 @@ export class TaskManagerService {
     await page.waitForTimeout(1200);
 
     if (this.isJiraLoginPage(page.url())) {
-      throw new Error('Jira is still on the login page. Log in in Chrome, then click Read ticket again.');
+      throw new Error('Jira is still on the login page. Log in in Chrome, then click RUN again.');
     }
 
-    const ticket = await this.extractJiraTicket(page, jiraLink);
+    const ticket = await this.extractJiraTicketWithRetry(page, jiraLink);
     const readAt = ticket.lastReadAt;
     const connection: TaskJiraConnection = {
       ...this.jiraConnection,
@@ -677,6 +819,674 @@ export class TaskManagerService {
       '- Keep the change scoped to the item described here.',
       '- Verify behavior with the most relevant build, lint, or manual checks available in this repository.'
     ].join('\n');
+  }
+
+  private async getDocumentJudgmentGuide(): Promise<string> {
+    const candidates = this.extensionUri
+      ? [
+        path.join(this.extensionUri.fsPath, 'src', ...DOCUMENT_JUDGMENT_GUIDE_RELATIVE_PATH),
+        path.join(this.extensionUri.fsPath, 'dist', ...DOCUMENT_JUDGMENT_BUNDLED_GUIDE_RELATIVE_PATH),
+        path.join(this.extensionUri.fsPath, ...DOCUMENT_JUDGMENT_BUNDLED_GUIDE_RELATIVE_PATH)
+      ]
+      : [];
+
+    for (const candidate of candidates) {
+      try {
+        return await fs.readFile(candidate, 'utf8');
+      } catch {
+        // Try the next extension layout.
+      }
+    }
+
+    return [
+      '# Document Judgment',
+      '',
+      'Decide whether the imported markdown documents contain enough concrete requirements for development.',
+      'Return STATUS: READY only when the documents include clear objective, scope, acceptance criteria, and key edge cases.',
+      'Return STATUS: FAIL when critical requirements are missing, ambiguous, conflicting, inaccessible, or not development-ready.',
+      'Do not use any other status values.'
+    ].join('\n');
+  }
+
+  private async prepareTaskDocumentsForJudgment(
+    workspaceFolder: vscode.Uri,
+    item: TaskManagerItem,
+    documentsFolderUri: vscode.Uri
+  ): Promise<TaskDocument[]> {
+    const sourceDocuments = await this.listTaskSourceDocuments(workspaceFolder, documentsFolderUri, item);
+
+    if (sourceDocuments.length === 0) {
+      throw new Error('Select at least one document before running Collect Document.');
+    }
+
+    await vscode.workspace.fs.createDirectory(documentsFolderUri);
+
+    const terminalJobs: MarkitdownTerminalJob[] = [];
+
+    for (const sourceDocument of sourceDocuments) {
+      const sourceUri = vscode.Uri.joinPath(workspaceFolder, ...sourceDocument.workspacePath.split(/[\\/]+/).filter(Boolean));
+      const targetUri = this.getMarkdownTargetUriForSource(documentsFolderUri, sourceDocument.name);
+      const sourcePath = sourceUri.fsPath;
+
+      if (this.isMarkdownFile(path.extname(sourcePath))) {
+        if (path.resolve(sourceUri.fsPath) !== path.resolve(targetUri.fsPath)) {
+          await vscode.workspace.fs.copy(sourceUri, targetUri, { overwrite: true });
+        }
+        continue;
+      }
+
+      const candidates = await this.getAvailableMarkitdownCandidates(sourcePath);
+      if (candidates.length === 0) {
+        throw new Error(`Unable to find markitdown for ${sourceDocument.name}. ${this.getMarkitdownInstallHint(sourcePath)}`);
+      }
+
+      terminalJobs.push({
+        name: sourceDocument.name,
+        targetPath: targetUri.fsPath,
+        candidates
+      });
+    }
+
+    if (terminalJobs.length > 0) {
+      await this.runMarkitdownJobsInTerminal(terminalJobs, workspaceFolder.fsPath);
+    }
+
+    return this.listMarkdownDocuments(workspaceFolder, documentsFolderUri);
+  }
+
+  private async runMarkitdownJobsInTerminal(
+    jobs: MarkitdownTerminalJob[],
+    workspaceRoot: string
+  ): Promise<void> {
+    if (process.platform !== 'win32') {
+      await this.runMarkitdownJobsSilently(jobs);
+      return;
+    }
+
+    const runDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentkit-markitdown-terminal-'));
+    const scriptPath = path.join(runDir, 'convert-documents.ps1');
+    const launcherPath = path.join(runDir, 'launch-markitdown.cmd');
+    const sentinelPath = path.join(runDir, 'exit-code.txt');
+    const logPath = path.join(runDir, 'markitdown.log');
+    const script = this.createPowerShellMarkitdownScript(jobs, sentinelPath, logPath);
+    const launcher = this.createCmdMarkitdownLauncher(scriptPath, workspaceRoot, sentinelPath, logPath);
+
+    await fs.writeFile(scriptPath, script, 'utf8');
+    await fs.writeFile(launcherPath, launcher, 'utf8');
+
+    const child = spawn('cmd.exe', ['/d', '/c', 'start', '', 'cmd.exe', '/k', launcherPath], {
+      cwd: workspaceRoot,
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false
+    });
+    const launchError = await this.waitForProcessLaunch(child);
+    if (launchError) {
+      throw new Error(`Unable to open MarkItDown shell window. ${launchError.message}`);
+    }
+    child.unref();
+
+    const exitCode = await this.waitForTerminalExitCode(sentinelPath, MARKITDOWN_TERMINAL_TIMEOUT_MS);
+    if (exitCode === '0') {
+      return;
+    }
+
+    const log = await this.readOptionalTextFile(logPath);
+    throw new Error(`Unable to convert selected document(s) with markitdown. ${log || 'See the NWA MarkItDown window for details.'}`);
+  }
+
+  private async runMarkitdownJobsSilently(jobs: MarkitdownTerminalJob[]): Promise<void> {
+    for (const job of jobs) {
+      let lastErrorMessage = '';
+      let converted = false;
+
+      for (const candidate of job.candidates) {
+        try {
+          const result = await execFileAsync(candidate.command, candidate.args, {
+            windowsHide: true,
+            maxBuffer: MARKITDOWN_MAX_BUFFER
+          });
+          await fs.mkdir(path.dirname(job.targetPath), { recursive: true });
+          await fs.writeFile(job.targetPath, result.stdout);
+          converted = true;
+          break;
+        } catch (error) {
+          lastErrorMessage = this.getExecErrorMessage(candidate, error as Error);
+        }
+      }
+
+      if (!converted) {
+        throw new Error(
+          `Unable to convert ${job.name} with markitdown. ${this.getMarkitdownInstallHint(job.name)} ${lastErrorMessage}`
+        );
+      }
+    }
+  }
+
+  private createCmdMarkitdownLauncher(
+    scriptPath: string,
+    workspaceRoot: string,
+    sentinelPath: string,
+    logPath: string
+  ): string {
+    return [
+      '@echo off',
+      'title NWA MarkItDown',
+      `cd /d ${this.toBatchQuoted(workspaceRoot)}`,
+      'echo Running MarkItDown conversion...',
+      `${this.toBatchQuoted(this.getWindowsPowerShellPath())} -NoProfile -ExecutionPolicy Bypass -File ${this.toBatchQuoted(scriptPath)}`,
+      'echo.',
+      'set "NWA_MARKITDOWN_EXIT=1"',
+      `if exist ${this.toBatchQuoted(sentinelPath)} set /p NWA_MARKITDOWN_EXIT=<${this.toBatchQuoted(sentinelPath)}`,
+      'if "%NWA_MARKITDOWN_EXIT%"=="0" (',
+      '  echo MarkItDown window finished. Closing this window...',
+      '  timeout /t 1 /nobreak >nul',
+      '  exit',
+      ')',
+      'echo MarkItDown window finished with errors. This window will stay open.',
+      `echo Log: ${logPath}`,
+      ''
+    ].join('\r\n');
+  }
+
+  private createPowerShellMarkitdownScript(
+    jobs: MarkitdownTerminalJob[],
+    sentinelPath: string,
+    logPath: string
+  ): string {
+    const jobBlocks = jobs.map(job => [
+      '[pscustomobject]@{',
+      `  Name = ${this.toPowerShellLiteral(job.name)}`,
+      `  Target = ${this.toPowerShellLiteral(job.targetPath)}`,
+      '  Candidates = @(',
+      job.candidates.map(candidate => [
+        '    [pscustomobject]@{',
+        `      Label = ${this.toPowerShellLiteral(candidate.label)}`,
+        `      Command = ${this.toPowerShellLiteral(candidate.command)}`,
+        `      Args = @(${candidate.args.map(arg => this.toPowerShellLiteral(arg)).join(', ')})`,
+        '    }'
+      ].join('\n')).join(',\n'),
+      '  )',
+      '}'
+    ].join('\n')).join(',\n');
+
+    return [
+      '$ErrorActionPreference = "Continue"',
+      '$Host.UI.RawUI.WindowTitle = "NWA MarkItDown"',
+      `$sentinel = ${this.toPowerShellLiteral(sentinelPath)}`,
+      `$log = ${this.toPowerShellLiteral(logPath)}`,
+      '$tmpRoot = Split-Path -Parent $sentinel',
+      'New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null',
+      'Set-Content -LiteralPath $log -Value "" -Encoding UTF8',
+      `$jobs = @(\n${jobBlocks}\n)`,
+      '$allOk = $true',
+      'foreach ($job in @($jobs)) {',
+      '  Write-Host ""',
+      '  Write-Host "Converting $($job.Name) with markitdown..."',
+      '  Add-Content -LiteralPath $log -Value "Converting $($job.Name)"',
+      '  $jobOk = $false',
+      '  foreach ($candidate in @($job.Candidates)) {',
+      '    $tmpOutput = Join-Path $tmpRoot ([guid]::NewGuid().ToString() + ".md")',
+      '    $tmpError = Join-Path $tmpRoot ([guid]::NewGuid().ToString() + ".err")',
+      '    Write-Host "Trying $($candidate.Label)"',
+      '    Add-Content -LiteralPath $log -Value "Trying $($candidate.Label)"',
+      '    $global:LASTEXITCODE = $null',
+      '    & $candidate.Command @($candidate.Args) 1> $tmpOutput 2> $tmpError',
+      '    $ok = $?',
+      '    $exitCode = if ($null -eq $global:LASTEXITCODE) { if ($ok) { 0 } else { 1 } } else { [int]$global:LASTEXITCODE }',
+      '    if ($exitCode -eq 0 -and (Test-Path -LiteralPath $tmpOutput)) {',
+      '      New-Item -ItemType Directory -Force -Path (Split-Path -Parent $job.Target) | Out-Null',
+      '      Move-Item -LiteralPath $tmpOutput -Destination $job.Target -Force',
+      '      Write-Host "Saved markdown to $($job.Target)"',
+      '      Add-Content -LiteralPath $log -Value "Saved markdown to $($job.Target)"',
+      '      $jobOk = $true',
+      '      break',
+      '    }',
+      '    $details = ""',
+      '    if (Test-Path -LiteralPath $tmpError) { $details = (Get-Content -LiteralPath $tmpError -Raw) }',
+      '    if (-not $details -and (Test-Path -LiteralPath $tmpOutput)) { $details = (Get-Content -LiteralPath $tmpOutput -Raw) }',
+      '    $message = "Candidate failed: $($candidate.Label) exit=$exitCode $details"',
+      '    Write-Warning $message',
+      '    Add-Content -LiteralPath $log -Value $message',
+      '  }',
+      '  if (-not $jobOk) {',
+      '    $allOk = $false',
+      '    break',
+      '  }',
+      '}',
+      'if ($allOk) {',
+      '  [System.IO.File]::WriteAllText($sentinel, "0", [System.Text.Encoding]::ASCII)',
+      '  Write-Host "MarkItDown conversion complete."',
+      '  return',
+      '}',
+      '[System.IO.File]::WriteAllText($sentinel, "1", [System.Text.Encoding]::ASCII)',
+      'Write-Error "MarkItDown conversion failed. See log: $log"',
+      ''
+    ].join('\n');
+  }
+
+  private createCmdClaudeJudgmentLauncher(
+    scriptPath: string,
+    workspaceRoot: string,
+    sentinelPath: string,
+    logPath: string,
+    operationLabel: string
+  ): string {
+    return [
+      '@echo off',
+      'title NWA Claude Judgment',
+      `cd /d ${this.toBatchQuoted(workspaceRoot)}`,
+      `echo Running ${operationLabel}...`,
+      `${this.toBatchQuoted(this.getWindowsPowerShellPath())} -NoProfile -ExecutionPolicy Bypass -File ${this.toBatchQuoted(scriptPath)}`,
+      'echo.',
+      'set "NWA_CLAUDE_EXIT=1"',
+      `if exist ${this.toBatchQuoted(sentinelPath)} set /p NWA_CLAUDE_EXIT=<${this.toBatchQuoted(sentinelPath)}`,
+      'if "%NWA_CLAUDE_EXIT%"=="0" (',
+      '  echo Claude judgment window finished. Closing this window...',
+      '  timeout /t 1 /nobreak >nul',
+      '  exit',
+      ')',
+      'echo Claude judgment window finished with errors. This window will stay open.',
+      `echo Log: ${logPath}`,
+      ''
+    ].join('\r\n');
+  }
+
+  private createPowerShellClaudeJudgmentScript(
+    candidates: MarkitdownCandidate[],
+    promptPath: string,
+    reportPath: string,
+    sentinelPath: string,
+    logPath: string
+  ): string {
+    const candidateBlocks = candidates.map(candidate => [
+      '[pscustomobject]@{',
+      `  Label = ${this.toPowerShellLiteral(candidate.label)}`,
+      `  Command = ${this.toPowerShellLiteral(candidate.command)}`,
+      `  Args = @(${candidate.args.map(arg => this.toPowerShellLiteral(arg)).join(', ')})`,
+      '}'
+    ].join('\n')).join(',\n');
+
+    return [
+      '$ErrorActionPreference = "Continue"',
+      '$Host.UI.RawUI.WindowTitle = "NWA Claude Judgment"',
+      `$promptPath = ${this.toPowerShellLiteral(promptPath)}`,
+      `$report = ${this.toPowerShellLiteral(reportPath)}`,
+      `$sentinel = ${this.toPowerShellLiteral(sentinelPath)}`,
+      `$log = ${this.toPowerShellLiteral(logPath)}`,
+      '$tmpRoot = Split-Path -Parent $sentinel',
+      'New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null',
+      'Set-Content -LiteralPath $log -Value "" -Encoding UTF8',
+      'Set-Content -LiteralPath $report -Value "" -Encoding UTF8',
+      `$candidates = @(\n${candidateBlocks}\n)`,
+      '$promptText = Get-Content -LiteralPath $promptPath -Raw',
+      'foreach ($candidate in @($candidates)) {',
+      '  Write-Host ""',
+      '  Write-Host "Trying $($candidate.Label)"',
+      '  Add-Content -LiteralPath $log -Value "Trying $($candidate.Label)"',
+      '  $global:LASTEXITCODE = $null',
+      '  try {',
+      '    $output = $promptText | & $candidate.Command @($candidate.Args) -p 2>&1',
+      '    $ok = $?',
+      '    $exitCode = if ($null -eq $global:LASTEXITCODE) { if ($ok) { 0 } else { 1 } } else { [int]$global:LASTEXITCODE }',
+      '    $outputText = ($output | Out-String).Trim()',
+      '    Set-Content -LiteralPath $report -Value $outputText -Encoding UTF8',
+      '    if ($outputText) { Write-Host $outputText }',
+      '    if ($exitCode -eq 0 -and $outputText.Length -gt 0) {',
+      '      [System.IO.File]::WriteAllText($sentinel, "0", [System.Text.Encoding]::ASCII)',
+      '      Write-Host "Claude judgment complete."',
+      '      return',
+      '    }',
+      '    $message = "Candidate failed: $($candidate.Label) exit=$exitCode $outputText"',
+      '    Write-Warning $message',
+      '    Add-Content -LiteralPath $log -Value $message',
+      '  } catch {',
+      '    $message = "Candidate failed: $($candidate.Label) $($_.Exception.Message)"',
+      '    Write-Warning $message',
+      '    Add-Content -LiteralPath $log -Value $message',
+      '  }',
+      '}',
+      '[System.IO.File]::WriteAllText($sentinel, "1", [System.Text.Encoding]::ASCII)',
+      'Write-Error "Claude judgment failed. See log: $log"',
+      ''
+    ].join('\n');
+  }
+
+  private async waitForTerminalExitCode(
+    sentinelPath: string,
+    timeoutMs: number,
+    operationLabel = 'terminal process'
+  ): Promise<string> {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      try {
+        const rawStatus = (await fs.readFile(sentinelPath, 'utf8'))
+          .replace(/^\uFEFF/, '')
+          .trim();
+        const statusMatch = rawStatus.match(/[01]/);
+        return statusMatch ? statusMatch[0] : rawStatus;
+      } catch {
+        await this.sleep(500);
+      }
+    }
+
+    throw new Error(`Timed out waiting for ${operationLabel} to finish.`);
+  }
+
+  private waitForProcessLaunch(child: ReturnType<typeof spawn>): Promise<Error | undefined> {
+    return new Promise(resolve => {
+      const timer = setTimeout(() => resolve(undefined), 250);
+      child.once('exit', code => {
+        if (typeof code === 'number' && code !== 0) {
+          clearTimeout(timer);
+          resolve(new Error(`Launch process exited with code ${code}.`));
+        }
+      });
+      child.once('error', error => {
+        clearTimeout(timer);
+        resolve(error);
+      });
+    });
+  }
+
+  private async readOptionalTextFile(filePath: string): Promise<string> {
+    try {
+      return (await fs.readFile(filePath, 'utf8')).replace(/\s+/g, ' ').trim().slice(0, 2000);
+    } catch {
+      return '';
+    }
+  }
+
+  private async readOptionalRawTextFile(filePath: string): Promise<string> {
+    try {
+      return (await fs.readFile(filePath, 'utf8')).replace(/^\uFEFF/, '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private getWindowsPowerShellPath(): string {
+    const windowsRoot = process.env.SystemRoot || process.env.WINDIR;
+    return windowsRoot
+      ? path.join(windowsRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+      : 'powershell.exe';
+  }
+
+  private toPowerShellLiteral(value: string): string {
+    return `'${String(value).replace(/'/g, "''")}'`;
+  }
+
+  private toBatchQuoted(value: string): string {
+    return `"${String(value).replace(/"/g, '""')}"`;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async createDocumentJudgmentPrompt(
+    workspaceFolder: vscode.Uri,
+    documentsFolder: string,
+    documents: TaskDocument[],
+    guide: string
+  ): Promise<string> {
+    const documentSections: string[] = [];
+
+    for (const document of documents.slice(0, DOCUMENT_JUDGMENT_DOCUMENT_LIMIT)) {
+      const documentUri = vscode.Uri.joinPath(workspaceFolder, ...document.workspacePath.split(/[\\/]+/).filter(Boolean));
+      let content = '';
+
+      try {
+        content = Buffer.from(await vscode.workspace.fs.readFile(documentUri)).toString('utf8');
+      } catch (error) {
+        content = `Unable to read this document: ${(error as Error).message}`;
+      }
+
+      documentSections.push([
+        `## ${document.name}`,
+        `Path: ${document.workspacePath}`,
+        '',
+        this.condenseTaskMarkdownText(content, DOCUMENT_JUDGMENT_DOCUMENT_CHAR_LIMIT)
+      ].join('\n'));
+    }
+
+    const omittedCount = Math.max(0, documents.length - DOCUMENT_JUDGMENT_DOCUMENT_LIMIT);
+    const omittedNotice = omittedCount > 0
+      ? `\n\n${omittedCount} additional document(s) exist in ${documentsFolder} but were omitted from this judgment input.`
+      : '';
+
+    return [
+      'You are judging whether imported task documents are ready for software development.',
+      '',
+      'Use these rules as the source of truth:',
+      guide.trim(),
+      '',
+      'Return your answer in this exact header format first:',
+      'STATUS: READY',
+      'MESSAGE: one concise sentence explaining the decision',
+      '',
+      'or:',
+      'STATUS: FAIL',
+      'MESSAGE: one concise sentence explaining the blocker',
+      '',
+      'Use FAIL for conditional, incomplete, ambiguous, conflicting, inaccessible, or non-development-ready documents.',
+      'Do not return OK, PASS, BLOCK, CONDITIONAL, PARTIAL, or UNKNOWN.',
+      'If you cannot read or inspect the imported documents, return STATUS: FAIL with the reason in MESSAGE.',
+      'Do not add any text before the STATUS line.',
+      'Do not modify files. Do not implement the task.',
+      '',
+      `Imported documents folder: ${documentsFolder}`,
+      '',
+      '# Imported Documents',
+      documentSections.join('\n\n'),
+      omittedNotice
+    ].join('\n').trim();
+  }
+
+  private async writeDocumentJudgmentInput(
+    workspaceFolder: vscode.Uri,
+    item: TaskManagerItem,
+    content: string
+  ): Promise<{ uri: vscode.Uri; workspacePath: string }> {
+    const promptUri = vscode.Uri.joinPath(
+      this.getTaskItemFolderUri(workspaceFolder, item.type, item.id),
+      DOCUMENT_JUDGMENT_INPUT_FILE_NAME
+    );
+    await vscode.workspace.fs.createDirectory(this.getTaskItemFolderUri(workspaceFolder, item.type, item.id));
+    await vscode.workspace.fs.writeFile(promptUri, Buffer.from(`${content.trim()}\n`, 'utf8'));
+
+    return {
+      uri: promptUri,
+      workspacePath: this.toWorkspacePath(workspaceFolder.fsPath, promptUri.fsPath)
+    };
+  }
+
+  private async deleteDocumentJudgmentInput(uri: vscode.Uri): Promise<void> {
+    try {
+      await vscode.workspace.fs.delete(uri, { recursive: false, useTrash: false });
+    } catch {
+      // Best-effort cleanup; the next run overwrites the file if it remains.
+    }
+  }
+
+  private async runClaudeDocumentJudgment(promptWorkspacePath: string, workspaceRoot: string): Promise<string> {
+    const prompt = [
+      `Read the document judgment input at ${promptWorkspacePath}.`,
+      'Validate the imported documents using the rules in that file.',
+      'Return exactly STATUS: READY or STATUS: FAIL first, then MESSAGE and any concise supporting details.',
+      'If you cannot inspect the documents, return STATUS: FAIL and explain that in MESSAGE.',
+      'Do not edit files and do not implement the task.'
+    ].join(' ');
+
+    return this.runClaudePromptForDocumentJudgment(prompt, workspaceRoot, 'Claude document judgment');
+  }
+
+  private async normalizeClaudeDocumentJudgmentReport(
+    previousReport: string,
+    promptWorkspacePath: string,
+    workspaceRoot: string
+  ): Promise<string> {
+    const prompt = [
+      'Your previous document judgment did not follow the required output format.',
+      `If needed, read the original document judgment input at ${promptWorkspacePath}.`,
+      'Return exactly two lines and nothing before them.',
+      'Line 1 must be either: STATUS: READY',
+      'or: STATUS: FAIL',
+      'Line 2 must be: MESSAGE: one concise sentence',
+      'Use STATUS: FAIL if the documents cannot be inspected, are empty, are ambiguous, or are not enough for development.',
+      '',
+      'Previous response:',
+      this.condenseTaskMarkdownText(previousReport, 4000)
+    ].join('\n');
+
+    return this.runClaudePromptForDocumentJudgment(prompt, workspaceRoot, 'Claude document judgment normalization');
+  }
+
+  private async runClaudePromptForDocumentJudgment(
+    prompt: string,
+    workspaceRoot: string,
+    operationLabel: string
+  ): Promise<string> {
+    if (process.platform === 'win32') {
+      return this.runClaudePromptInTerminal(prompt, workspaceRoot, operationLabel);
+    }
+
+    return this.runClaudePromptSilently(prompt, workspaceRoot, operationLabel);
+  }
+
+  private async runClaudePromptInTerminal(
+    prompt: string,
+    workspaceRoot: string,
+    operationLabel: string
+  ): Promise<string> {
+    const candidates = await this.getAvailableClaudeCandidates();
+    if (candidates.length === 0) {
+      throw new Error(`Claude document judgment failed. ${this.getClaudeInstallHint()}`);
+    }
+
+    const runDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentkit-claude-judgment-'));
+    const promptPath = path.join(runDir, 'claude-judgment-prompt.txt');
+    const scriptPath = path.join(runDir, 'run-claude-judgment.ps1');
+    const launcherPath = path.join(runDir, 'launch-claude-judgment.cmd');
+    const sentinelPath = path.join(runDir, 'exit-code.txt');
+    const reportPath = path.join(runDir, 'claude-judgment-output.txt');
+    const logPath = path.join(runDir, 'claude-judgment.log');
+    const script = this.createPowerShellClaudeJudgmentScript(candidates, promptPath, reportPath, sentinelPath, logPath);
+    const launcher = this.createCmdClaudeJudgmentLauncher(scriptPath, workspaceRoot, sentinelPath, logPath, operationLabel);
+
+    await fs.writeFile(promptPath, `${prompt.trim()}\n`, 'utf8');
+    await fs.writeFile(scriptPath, script, 'utf8');
+    await fs.writeFile(launcherPath, launcher, 'utf8');
+
+    const child = spawn('cmd.exe', ['/d', '/c', 'start', '', 'cmd.exe', '/k', launcherPath], {
+      cwd: workspaceRoot,
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false
+    });
+    const launchError = await this.waitForProcessLaunch(child);
+    if (launchError) {
+      throw new Error(`Unable to open Claude judgment shell window. ${launchError.message}`);
+    }
+    child.unref();
+
+    const exitCode = await this.waitForTerminalExitCode(
+      sentinelPath,
+      DOCUMENT_JUDGMENT_TIMEOUT_MS,
+      operationLabel
+    );
+    const output = await this.readOptionalRawTextFile(reportPath);
+
+    if (exitCode === '0' && output) {
+      return output;
+    }
+
+    const log = await this.readOptionalTextFile(logPath);
+    throw new Error(`${operationLabel} failed. ${output || log || 'See the NWA Claude Judgment window for details.'}`);
+  }
+
+  private async runClaudePromptSilently(
+    prompt: string,
+    workspaceRoot: string,
+    operationLabel: string
+  ): Promise<string> {
+    try {
+      const result = await execFileAsync('claude', ['-p', prompt], {
+        cwd: workspaceRoot,
+        timeout: DOCUMENT_JUDGMENT_TIMEOUT_MS,
+        windowsHide: true,
+        maxBuffer: MARKITDOWN_MAX_BUFFER
+      });
+      const output = [result.stdout.toString(), result.stderr.toString()]
+        .map(part => part.trim())
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+
+      if (!output) {
+        throw new Error(`Claude returned an empty response for ${operationLabel}.`);
+      }
+
+      return output;
+    } catch (error) {
+      const message = this.getExecErrorText(error as Error);
+      throw new Error(`${operationLabel} failed. ${message || (error as Error).message}`);
+    }
+  }
+
+  private parseDocumentJudgmentReport(report: string): { ready: boolean; message: string; statusFound: boolean } {
+    const status = this.getDocumentJudgmentStatus(report);
+    const message = this.getDocumentJudgmentMessage(report) ||
+      this.condenseTaskMarkdownText(report, 600);
+
+    if (status === 'READY') {
+      return {
+        ready: true,
+        message: message || 'Document judgment passed.',
+        statusFound: true
+      };
+    }
+
+    if (status === 'FAIL') {
+      return {
+        ready: false,
+        message: message || 'Imported documents are not ready for development.',
+        statusFound: true
+      };
+    }
+
+    return {
+      ready: false,
+      message: `Claude document judgment did not return STATUS: READY or STATUS: FAIL. Raw response: ${this.condenseTaskMarkdownText(report, 300)}`,
+      statusFound: false
+    };
+  }
+
+  private getDocumentJudgmentStatus(report: string): 'READY' | 'FAIL' | undefined {
+    const statusLineMatch = report.match(/^\s*(?:[-*]\s*)?(?:>\s*)?(?:#+\s*)?(?:\*\*)?STATUS(?:\*\*)?\s*[:=\-]\s*(.+)$/im);
+    const jsonStatusMatch = report.match(/["']status["']\s*:\s*["']([^"']+)["']/i);
+    const firstLineMatch = report.match(/^\s*(READY|FAIL)\s*$/im);
+    const rawStatus = statusLineMatch?.[1] || jsonStatusMatch?.[1] || firstLineMatch?.[1] || '';
+    const normalizedStatus = rawStatus
+      .replace(/[`*_]/g, '')
+      .replace(/[.,;]+$/g, '')
+      .trim()
+      .toUpperCase();
+
+    if (/^(FAIL|NOT READY|NOT OK|BLOCK|CONDITIONAL)\b/.test(normalizedStatus)) {
+      return 'FAIL';
+    }
+
+    if (/^READY\b/.test(normalizedStatus) && !/\b(FAIL|BLOCK|CONDITIONAL|NOT READY|NOT OK)\b/.test(normalizedStatus)) {
+      return 'READY';
+    }
+
+    return undefined;
+  }
+
+  private getDocumentJudgmentMessage(report: string): string {
+    return report.match(/^\s*(?:[-*]\s*)?(?:>\s*)?(?:\*\*)?MESSAGE(?:\*\*)?\s*[:=\-]\s*(.+)$/im)?.[1]?.trim() || '';
   }
 
   private fillTaskMarkdownGuide(
@@ -1119,7 +1929,7 @@ export class TaskManagerService {
     const trimmedLink = link.trim();
 
     if (!trimmedLink) {
-      throw new Error('Paste a Jira ticket URL before opening Chrome.');
+      throw new Error('Paste a Jira ticket URL before running Collect Jira.');
     }
 
     let url: URL;
@@ -1280,6 +2090,35 @@ export class TaskManagerService {
   private getJiraBrowserLaunchError(error: Error): Error {
     logger.error('Unable to launch Playwright Chrome for Jira', error);
     return new Error(`Unable to open Playwright Chrome for Jira. ${error.message}`);
+  }
+
+  private async extractJiraTicketWithRetry(page: Page, requestedLink: string): Promise<TaskJiraTicket> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 1; attempt <= JIRA_EMPTY_CONTENT_RETRY_ATTEMPTS; attempt++) {
+      try {
+        await page.waitForLoadState('domcontentloaded', { timeout: JIRA_PAGE_TIMEOUT_MS }).catch(() => undefined);
+        return await this.extractJiraTicket(page, requestedLink);
+      } catch (error) {
+        lastError = error as Error;
+
+        if (!this.isEmptyJiraContentError(lastError) || attempt >= JIRA_EMPTY_CONTENT_RETRY_ATTEMPTS) {
+          throw lastError;
+        }
+
+        logger.debug(
+          `Jira ticket content was not ready; retrying in ${JIRA_EMPTY_CONTENT_RETRY_DELAY_MS / 1000}s ` +
+          `(${attempt}/${JIRA_EMPTY_CONTENT_RETRY_ATTEMPTS})`
+        );
+        await page.waitForTimeout(JIRA_EMPTY_CONTENT_RETRY_DELAY_MS);
+      }
+    }
+
+    throw lastError || new Error(JIRA_EMPTY_CONTENT_ERROR);
+  }
+
+  private isEmptyJiraContentError(error: Error): boolean {
+    return error.message === JIRA_EMPTY_CONTENT_ERROR;
   }
 
   private async extractJiraTicket(page: Page, requestedLink: string): Promise<TaskJiraTicket> {
@@ -1500,7 +2339,7 @@ export class TaskManagerService {
       .filter(Boolean);
 
     if (!summary && !description && comments.length === 0) {
-      throw new Error('No Jira title, description, or comments were found on the current page.');
+      throw new Error(JIRA_EMPTY_CONTENT_ERROR);
     }
 
     const key = this.normalizeJiraIssueKey(data.key) ||
@@ -1987,6 +2826,9 @@ export class TaskManagerService {
         id: this.normalizeTaskItemId(payload.id || id),
         type: this.normalizeTaskItemType(payload.type),
         workflowId: payload.workflowId,
+        sourceDocuments: Array.isArray(payload.sourceDocuments)
+          ? payload.sourceDocuments.filter((value): value is string => typeof value === 'string')
+          : undefined,
         createdAt: payload.createdAt,
         updatedAt: payload.updatedAt || ''
       };
@@ -2031,15 +2873,18 @@ export class TaskManagerService {
     workspaceFolder: vscode.Uri,
     type: TaskItemType,
     id: string,
-    workflowId?: string
+    workflowId?: string,
+    sourceDocuments?: string[]
   ): Promise<void> {
     const metadataUri = this.getTaskItemMetadataUri(workspaceFolder, type, id);
     const existing = await this.readTaskItemMetadata(workspaceFolder, type, id);
     const now = new Date().toISOString();
+    const selectedSourceDocuments = sourceDocuments || existing?.sourceDocuments || [];
     const metadata: TaskItemMetadata = {
       id,
       type,
       workflowId,
+      sourceDocuments: selectedSourceDocuments,
       createdAt: existing?.createdAt || now,
       updatedAt: now
     };
@@ -2048,8 +2893,27 @@ export class TaskManagerService {
       delete metadata.workflowId;
     }
 
+    if (!metadata.sourceDocuments || metadata.sourceDocuments.length === 0) {
+      delete metadata.sourceDocuments;
+    }
+
     await vscode.workspace.fs.createDirectory(this.getTaskItemFolderUri(workspaceFolder, type, id));
     await vscode.workspace.fs.writeFile(metadataUri, Buffer.from(`${JSON.stringify(metadata, null, 2)}\n`, 'utf8'));
+  }
+
+  private async appendTaskSourceDocument(
+    workspaceFolder: vscode.Uri,
+    type: TaskItemType,
+    id: string,
+    workspacePath: string
+  ): Promise<void> {
+    const metadata = await this.readTaskItemMetadata(workspaceFolder, type, id);
+    const sourceDocuments = Array.from(new Set([
+      ...(metadata?.sourceDocuments || []),
+      workspacePath
+    ]));
+
+    await this.writeTaskItemMetadata(workspaceFolder, type, id, metadata?.workflowId, sourceDocuments);
   }
 
   private async resolveSelectedWorkflowSnapshot(workflowId: string): Promise<TaskItemWorkflowSnapshot> {
@@ -2116,6 +2980,123 @@ export class TaskManagerService {
       logger.warn(`Unable to read task workflow ${workflowUri.fsPath}: ${(error as Error).message}`);
       return undefined;
     }
+  }
+
+  private async resolveTaskWorkflow(workspaceFolder: vscode.Uri, item: TaskManagerItem): Promise<WorkflowFile> {
+    const itemWorkflow = await this.readTaskItemWorkflow(workspaceFolder, item.type, item.id);
+
+    if (itemWorkflow) {
+      return itemWorkflow;
+    }
+
+    const workflows = await this.workflowStorage.listWorkflows();
+    const selectedWorkflow = workflows.find(workflow => workflow.id === item.workflowId);
+
+    if (selectedWorkflow) {
+      return {
+        ...selectedWorkflow,
+        fileName: TASK_ITEM_WORKFLOW_FILE_NAME,
+        blocks: selectedWorkflow.blocks.map(block => this.cloneWorkflowBlock(block))
+      };
+    }
+
+    return this.createFallbackTaskWorkflow(item);
+  }
+
+  private cloneWorkflowBlock(block: WorkflowBlock): WorkflowBlock {
+    if (block.kind === 'step') {
+      return { ...block };
+    }
+
+    return {
+      ...block,
+      children: block.children.map(child => ({ ...child }))
+    };
+  }
+
+  private createFallbackTaskWorkflow(item: TaskManagerItem): WorkflowFile {
+    return {
+      version: WORKFLOW_FILE_VERSION,
+      id: `task_${item.type}_${item.id}_workflow`,
+      name: 'Task process',
+      fileName: TASK_ITEM_WORKFLOW_FILE_NAME,
+      blocks: [
+        this.createFallbackStep('document', 'collect_document', 'Document'),
+        this.createFallbackStep('figma', 'collect_figma', 'Figma'),
+        this.createFallbackStep('jira', 'collect_jira', 'Jira'),
+        this.createFallbackStep('markdown', 'review_human', 'Human review'),
+        this.createFallbackStep('code', 'custom', 'Code'),
+        this.createFallbackStep('testcase', 'unit_test', 'Testcase')
+      ]
+    };
+  }
+
+  private createFallbackStep(id: string, stepType: WorkflowStepType, title: string): WorkflowStepBlock {
+    return {
+      id,
+      kind: 'step',
+      stepType,
+      title,
+      status: 'idle'
+    };
+  }
+
+  private findWorkflowStepForCompletion(
+    workflow: WorkflowFile,
+    request: TaskWorkflowStepDoneRequest
+  ): { step: WorkflowStepBlock; parent?: WorkflowParallelBlock } | undefined {
+    const locatorMatch = request.locator ? this.findWorkflowStepByLocator(workflow, request.locator) : undefined;
+
+    if (locatorMatch) {
+      return locatorMatch;
+    }
+
+    const stepId = String(request.stepId || '').trim();
+    if (!stepId) {
+      return undefined;
+    }
+
+    for (const block of workflow.blocks) {
+      if (block.kind === 'step') {
+        if (block.id === stepId) {
+          return { step: block };
+        }
+        continue;
+      }
+
+      const child = block.children.find(candidate => candidate.id === stepId);
+      if (child) {
+        return { step: child, parent: block };
+      }
+    }
+
+    return undefined;
+  }
+
+  private findWorkflowStepByLocator(
+    workflow: WorkflowFile,
+    locator: TaskWorkflowStepDoneRequest['locator']
+  ): { step: WorkflowStepBlock; parent?: WorkflowParallelBlock } | undefined {
+    if (!locator) {
+      return undefined;
+    }
+
+    if (locator.type === 'root') {
+      const block = workflow.blocks[Number(locator.index)];
+      return block?.kind === 'step' ? { step: block } : undefined;
+    }
+
+    if (locator.type === 'parallel-child') {
+      const parent = workflow.blocks[Number(locator.parentIndex)];
+      if (!parent || parent.kind !== 'parallel') {
+        return undefined;
+      }
+
+      const step = parent.children[Number(locator.childIndex)];
+      return step ? { step, parent } : undefined;
+    }
+
+    return undefined;
   }
 
   private async migrateLegacyTaskMarkdown(
@@ -2475,6 +3456,56 @@ export class TaskManagerService {
     }
   }
 
+  private async listTaskSourceDocuments(
+    workspaceFolder: vscode.Uri,
+    documentsFolderUri: vscode.Uri,
+    item: TaskManagerItem
+  ): Promise<TaskDocument[]> {
+    try {
+      const metadata = await this.readTaskItemMetadata(workspaceFolder, item.type, item.id);
+      const sourcePaths = metadata?.sourceDocuments || [];
+      const documents: TaskDocument[] = [];
+
+      for (const workspacePath of sourcePaths) {
+        const safeParts = workspacePath.split(/[\\/]+/).filter(Boolean);
+        const documentUri = vscode.Uri.joinPath(workspaceFolder, ...safeParts);
+
+        if (!this.isUriInsideFolder(documentUri, documentsFolderUri)) {
+          continue;
+        }
+
+        try {
+          const stat = await vscode.workspace.fs.stat(documentUri);
+          if (stat.type !== vscode.FileType.File) {
+            continue;
+          }
+
+          documents.push({
+            name: path.basename(documentUri.fsPath),
+            workspacePath: this.toWorkspacePath(workspaceFolder.fsPath, documentUri.fsPath)
+          });
+        } catch {
+          // Ignore stale source document references.
+        }
+      }
+
+      return documents.sort((a, b) => a.name.localeCompare(b.name));
+    } catch {
+      return [];
+    }
+  }
+
+  private isUriInsideFolder(uri: vscode.Uri, folderUri: vscode.Uri): boolean {
+    const relativePath = path.relative(folderUri.fsPath, uri.fsPath);
+    return Boolean(relativePath) && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+  }
+
+  private getMarkdownTargetUriForSource(documentsFolderUri: vscode.Uri, sourceName: string): vscode.Uri {
+    const parsedName = path.parse(sourceName);
+    const safeBaseName = this.getSafeBaseName(parsedName.name || sourceName);
+    return vscode.Uri.joinPath(documentsFolderUri, `${safeBaseName}.md`);
+  }
+
   private async convertToMarkdown(sourceBuffer: Buffer, safeBaseName: string, extension: string): Promise<string> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentkit-document-'));
     const sourceExtension = extension || '.bin';
@@ -2528,10 +3559,96 @@ export class TaskManagerService {
 
     if (process.platform === 'win32') {
       const windowsCandidates = await this.getWindowsMarkitdownCandidates(sourcePath);
-      candidates.push(...windowsCandidates);
+      return this.dedupeCandidates([...windowsCandidates, ...candidates]);
     }
 
     return this.dedupeCandidates(candidates);
+  }
+
+  private async getAvailableMarkitdownCandidates(sourcePath: string): Promise<MarkitdownCandidate[]> {
+    const candidates = await this.getMarkitdownCandidates(sourcePath);
+    const available: MarkitdownCandidate[] = [];
+
+    for (const candidate of candidates) {
+      if (await this.isCommandAvailable(candidate.command)) {
+        available.push(candidate);
+      }
+    }
+
+    return available;
+  }
+
+  private getClaudeCandidates(): MarkitdownCandidate[] {
+    const candidates: MarkitdownCandidate[] = [
+      { command: 'claude', args: [], label: 'claude' }
+    ];
+
+    if (process.platform === 'win32') {
+      return this.dedupeCandidates([...candidates, ...this.getWindowsClaudeCandidates()]);
+    }
+
+    return this.dedupeCandidates(candidates);
+  }
+
+  private async getAvailableClaudeCandidates(): Promise<MarkitdownCandidate[]> {
+    const candidates = this.getClaudeCandidates();
+    const available: MarkitdownCandidate[] = [];
+
+    for (const candidate of candidates) {
+      if (await this.isCommandAvailable(candidate.command)) {
+        available.push(candidate);
+      }
+    }
+
+    return available;
+  }
+
+  private getWindowsClaudeCandidates(): MarkitdownCandidate[] {
+    const candidates: MarkitdownCandidate[] = [];
+    const userProfile = process.env.USERPROFILE;
+    const appData = process.env.APPDATA;
+    const localAppData = process.env.LOCALAPPDATA;
+
+    if (userProfile) {
+      candidates.push(
+        { command: path.join(userProfile, '.local', 'bin', 'claude.exe'), args: [], label: 'Claude Code native install' },
+        { command: path.join(userProfile, '.local', 'bin', 'claude.cmd'), args: [], label: 'Claude Code native install' }
+      );
+    }
+
+    if (appData) {
+      candidates.push(
+        { command: path.join(appData, 'npm', 'claude.cmd'), args: [], label: 'Claude Code npm install' },
+        { command: path.join(appData, 'npm', 'claude.exe'), args: [], label: 'Claude Code npm install' }
+      );
+    }
+
+    if (localAppData) {
+      candidates.push(
+        { command: path.join(localAppData, 'Programs', 'Claude', 'claude.exe'), args: [], label: 'Claude Code local install' }
+      );
+    }
+
+    return candidates;
+  }
+
+  private async isCommandAvailable(command: string): Promise<boolean> {
+    if (path.isAbsolute(command) || command.includes('\\') || command.includes('/')) {
+      return this.pathExists(command);
+    }
+
+    const lookupCommand = process.platform === 'win32' ? 'where.exe' : 'which';
+
+    try {
+      await execFileAsync(lookupCommand, [command], {
+        windowsHide: true,
+        timeout: 5000,
+        maxBuffer: 1024 * 1024
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private async getWindowsMarkitdownCandidates(sourcePath: string): Promise<MarkitdownCandidate[]> {
@@ -2653,6 +3770,10 @@ export class TaskManagerService {
     return 'Install markitdown or run NWA: Init env.';
   }
 
+  private getClaudeInstallHint(): string {
+    return 'Install Claude Code CLI or run NWA: Init env, then restart VS Code if PATH was changed.';
+  }
+
   private async getUniqueMarkdownUri(documentsFolderUri: vscode.Uri, safeBaseName: string): Promise<vscode.Uri> {
     let index = 0;
 
@@ -2668,6 +3789,36 @@ export class TaskManagerService {
         return candidateUri;
       }
     }
+  }
+
+  private async getUniqueSourceDocumentUri(sourceFolderUri: vscode.Uri, safeFileName: string): Promise<vscode.Uri> {
+    const parsedName = path.parse(safeFileName);
+    const safeBaseName = this.getSafeBaseName(parsedName.name || safeFileName);
+    const safeExtension = parsedName.ext || '';
+    let index = 0;
+
+    while (true) {
+      const suffix = index === 0 ? '' : `-${index + 1}`;
+      const fileName = `${safeBaseName}${suffix}${safeExtension}`;
+      const candidateUri = vscode.Uri.joinPath(sourceFolderUri, fileName);
+
+      try {
+        await vscode.workspace.fs.stat(candidateUri);
+        index += 1;
+      } catch {
+        return candidateUri;
+      }
+    }
+  }
+
+  private getSafeDocumentFileName(fileName: string): string {
+    const parsedName = path.parse(fileName);
+    const safeBaseName = this.getSafeBaseName(parsedName.name || parsedName.base || 'document');
+    const safeExtension = parsedName.ext
+      .replace(/[^a-zA-Z0-9.]+/g, '')
+      .slice(0, 24);
+
+    return `${safeBaseName}${safeExtension}`;
   }
 
   private getSafeBaseName(baseName: string): string {

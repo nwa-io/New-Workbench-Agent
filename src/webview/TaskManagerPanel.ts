@@ -6,6 +6,8 @@ import * as path from 'path';
 import { ConfigService } from '../services/ConfigService';
 import { FileSystemService } from '../services/FileSystemService';
 import { TaskManagerService } from '../services/TaskManagerService';
+import { WorkflowRunError, WorkflowRunner } from '../features/workflows/WorkflowRunner';
+import type { WorkflowFile, WorkflowStepBlock, WorkflowStatus } from '../features/workflows/types';
 import { logger } from '../utils/logger';
 import { openExternalTerminal } from '../utils/externalTerminal';
 import { FIGMA_ACCESS_TOKEN_SECRET_KEY } from '../features/workflows/settingsData';
@@ -22,9 +24,15 @@ import {
   TaskMarkdownRequest,
   TaskMarkdownRunRequest,
   TaskMarkdownUpdateRequest,
+  TaskWorkflowRunRequest,
+  TaskWorkflowStepDoneRequest,
   TaskManagerMode
 } from '../models/TaskManager';
 import { getTaskManagerContent } from './taskManagerContent';
+
+interface TaskWorkflowExecutionContext {
+  request: TaskWorkflowRunRequest;
+}
 
 export class TaskManagerPanel {
   public static currentPanel: TaskManagerPanel | undefined;
@@ -35,6 +43,8 @@ export class TaskManagerPanel {
   private currentItemId?: string;
   private currentItemType?: TaskItemType;
   private activeClaudeRunCleanup?: () => void;
+  private workflowRunner = new WorkflowRunner();
+  private isTaskWorkflowRunning = false;
 
   public static createOrShow(
     extensionUri: vscode.Uri,
@@ -119,6 +129,12 @@ export class TaskManagerPanel {
             break;
           case 'runTaskMarkdown':
             await this.handleRunTaskMarkdown(message.data);
+            break;
+          case 'runTaskWorkflow':
+            await this.handleRunTaskWorkflow(message.data);
+            break;
+          case 'markWorkflowStepDone':
+            await this.handleMarkWorkflowStepDone(message.data);
             break;
           case 'openJiraInChrome':
             await this.handleOpenJiraInChrome(message.data);
@@ -294,11 +310,11 @@ export class TaskManagerPanel {
       const result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Window,
-          title: 'Importing task document',
+          title: 'Selecting task document',
           cancellable: false
         },
         async (progress) => {
-          progress.report({ increment: 0, message: 'Converting with markitdown...' });
+          progress.report({ increment: 0, message: 'Saving source file...' });
           const importResult = await this.taskManagerService.importDocument({
             ...upload,
             mode: upload.mode || this.mode,
@@ -315,14 +331,14 @@ export class TaskManagerPanel {
         command: 'taskDocumentUploadComplete',
         data: result
       });
-      vscode.window.showInformationMessage(`Imported ${result.document.name}`);
+      vscode.window.showInformationMessage(`Selected ${result.document.name}`);
     } catch (error) {
-      logger.error('Error importing task document', error as Error);
+      logger.error('Error selecting task document', error as Error);
       this._panel.webview.postMessage({
         command: 'taskDocumentUploadFailed',
         data: { message: (error as Error).message }
       });
-      vscode.window.showErrorMessage(`Task document import failed: ${(error as Error).message}`);
+      vscode.window.showErrorMessage(`Task document selection failed: ${(error as Error).message}`);
     }
   }
 
@@ -481,6 +497,176 @@ export class TaskManagerPanel {
         data: { message: (error as Error).message }
       });
     }
+  }
+
+  private async handleRunTaskWorkflow(request?: TaskWorkflowRunRequest): Promise<void> {
+    const runRequest = this.withTaskContext(request || {});
+
+    if (this.isTaskWorkflowRunning) {
+      this._panel.webview.postMessage({
+        command: 'taskWorkflowRunFailed',
+        data: { message: 'A workflow run is already in progress.' }
+      });
+      return;
+    }
+
+    let workflow: WorkflowFile | undefined;
+    this.isTaskWorkflowRunning = true;
+
+    try {
+      const loaded = await this.taskManagerService.getTaskWorkflowForRun(runRequest);
+      workflow = loaded.workflow;
+      this.applyStateContext(loaded.state);
+      this._panel.webview.postMessage({
+        command: 'taskWorkflowRunPrepared',
+        data: { workflow, state: loaded.state }
+      });
+
+      await this.workflowRunner.run<TaskWorkflowExecutionContext>(workflow, {
+        context: { request: runRequest },
+        executor: {
+          execute: async (step, context) => this.executeTaskWorkflowStep(step, context.request)
+        },
+        preserveSuccessfulStep: step => step.stepType === 'review_human',
+        onStatus: (blockId, status) => this.postTaskWorkflowStatus(blockId, status),
+        onMessage: message => this._panel.webview.postMessage({
+          command: 'taskWorkflowRunMessage',
+          data: { message }
+        })
+      });
+
+      const saved = await this.taskManagerService.saveTaskWorkflow(runRequest, workflow);
+      this.applyStateContext(saved.state);
+      this._panel.webview.postMessage({
+        command: 'taskWorkflowRunComplete',
+        data: saved
+      });
+      vscode.window.showInformationMessage('NWA: Workflow completed.');
+    } catch (error) {
+      logger.error('Error running task workflow', error as Error);
+      let savedState: Awaited<ReturnType<TaskManagerService['saveTaskWorkflow']>> | undefined;
+
+      if (workflow) {
+        try {
+          savedState = await this.taskManagerService.saveTaskWorkflow(runRequest, workflow);
+          this.applyStateContext(savedState.state);
+        } catch (saveError) {
+          logger.warn(`Unable to save failed workflow state: ${(saveError as Error).message}`);
+        }
+      }
+
+      this._panel.webview.postMessage({
+        command: 'taskWorkflowRunFailed',
+        data: {
+          message: (error as Error).message,
+          blockId: error instanceof WorkflowRunError ? error.blockId : undefined,
+          state: savedState?.state,
+          workflow: savedState?.workflow
+        }
+      });
+      vscode.window.showErrorMessage(`Workflow failed: ${(error as Error).message}`);
+    } finally {
+      this.isTaskWorkflowRunning = false;
+    }
+  }
+
+  private async executeTaskWorkflowStep(
+    step: WorkflowStepBlock,
+    request: TaskWorkflowRunRequest
+  ): Promise<{ status?: 'success' | 'skipped'; message?: string }> {
+    switch (step.stepType) {
+      case 'collect_document':
+        return this.executeCollectDocumentStep(request);
+      case 'collect_figma':
+        return this.executeCollectFigmaStep();
+      case 'collect_jira':
+        return this.executeCollectJiraStep(request);
+      case 'review_human':
+        return this.executeReviewHumanStep();
+      default:
+        return this.executeUnsupportedWorkflowStep(step);
+    }
+  }
+
+  private async executeCollectDocumentStep(
+    request: TaskWorkflowRunRequest
+  ): Promise<{ status: 'success'; message: string }> {
+    const result = await this.taskManagerService.judgeTaskDocumentsWithClaude(request);
+    return {
+      status: 'success',
+      message: result.message || 'Document judgment passed.'
+    };
+  }
+
+  private async executeCollectFigmaStep(): Promise<{ status: 'success'; message: string }> {
+    return {
+      status: 'success',
+      message: 'Figma design marked completed.'
+    };
+  }
+
+  private async executeCollectJiraStep(
+    request: TaskWorkflowRunRequest
+  ): Promise<{ status: 'success'; message: string }> {
+    const result = await this.taskManagerService.readJiraTicket({
+      ...request,
+      link: String(request.jiraLink || '').trim()
+    });
+    this.applyStateContext(result.state);
+    return {
+      status: 'success',
+      message: `Jira ticket collected: ${result.connection.ticket?.title || result.connection.link}`
+    };
+  }
+
+  private async executeReviewHumanStep(): Promise<never> {
+    throw new Error('Review by Human must be marked done manually before the workflow can continue.');
+  }
+
+  private async executeUnsupportedWorkflowStep(
+    step: WorkflowStepBlock
+  ): Promise<{ status: 'skipped'; message: string }> {
+    return {
+      status: 'skipped',
+      message: `Step "${step.title}" is not automated yet, so it was skipped.`
+    };
+  }
+
+  private postTaskWorkflowStatus(blockId: string, status: WorkflowStatus): void {
+    this._panel.webview.postMessage({
+      command: 'taskWorkflowStatusChanged',
+      data: { blockId, status }
+    });
+  }
+
+  private async handleMarkWorkflowStepDone(request?: TaskWorkflowStepDoneRequest): Promise<void> {
+    if (!request) {
+      return;
+    }
+
+    try {
+      const result = await this.taskManagerService.markWorkflowStepDone(this.withTaskContext(request));
+      this.applyStateContext(result.state);
+      this._panel.webview.postMessage({
+        command: 'taskWorkflowStepDoneComplete',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error marking workflow step done', error as Error);
+      this._panel.webview.postMessage({
+        command: 'taskWorkflowStepDoneFailed',
+        data: { message: (error as Error).message }
+      });
+    }
+  }
+
+  private withTaskContext<T extends { mode?: TaskManagerMode; itemId?: string; itemType?: TaskItemType }>(request: T): T {
+    return {
+      ...request,
+      mode: request.mode || this.mode,
+      itemId: request.itemId || this.currentItemId,
+      itemType: request.itemType || this.currentItemType
+    };
   }
 
   private async handleRunTaskMarkdown(request?: TaskMarkdownRunRequest): Promise<void> {
@@ -800,6 +986,7 @@ export class TaskManagerPanel {
   public dispose(): void {
     TaskManagerPanel.currentPanel = undefined;
     this.disposeActiveClaudeRun();
+    this.workflowRunner.dispose();
     this._panel.dispose();
     while (this._disposables.length) {
       const disposable = this._disposables.pop();
