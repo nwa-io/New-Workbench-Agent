@@ -10,11 +10,12 @@ import { WorkflowRunError, WorkflowRunner } from '../features/workflows/Workflow
 import type { WorkflowFile, WorkflowStepBlock, WorkflowStatus } from '../features/workflows/types';
 import { logger } from '../utils/logger';
 import { openExternalTerminal } from '../utils/externalTerminal';
+import { COMMANDS } from '../utils/constants';
 import { FIGMA_ACCESS_TOKEN_SECRET_KEY } from '../features/workflows/settingsData';
+import { FigmaBridgeStatus } from '../figmaBridge/types';
+import { getFigmaContextPathFromGlobalStorageUri, readLatestFigmaContextFromPath, StoredFigmaContext } from '../shared/figmaStore';
 import {
   TaskDocumentUpload,
-  TaskFigmaNodeSelectionRequest,
-  TaskFigmaSyncRequest,
   TaskItemCreateRequest,
   TaskItemDeleteRequest,
   TaskItemSelectRequest,
@@ -32,6 +33,25 @@ import { getTaskManagerContent } from './taskManagerContent';
 
 interface TaskWorkflowExecutionContext {
   request: TaskWorkflowRunRequest;
+}
+
+interface TaskFigmaBridgeItem {
+  id?: string;
+  name?: string;
+  type?: string;
+  width?: number;
+  height?: number;
+  parentName?: string;
+}
+
+interface TaskFigmaBridgeDetail {
+  status: FigmaBridgeStatus;
+  contextPath?: string;
+  receivedAt?: string;
+  fileName?: string;
+  fileKey?: string;
+  pageName?: string;
+  items: TaskFigmaBridgeItem[];
 }
 
 export class TaskManagerPanel {
@@ -81,7 +101,7 @@ export class TaskManagerPanel {
     extensionUri: vscode.Uri,
     configService?: ConfigService,
     mode: TaskManagerMode = 'task',
-    storageUri?: vscode.Uri,
+    private readonly storageUri?: vscode.Uri,
     private readonly secretStorage?: vscode.SecretStorage
   ) {
     this._panel = panel;
@@ -112,14 +132,17 @@ export class TaskManagerPanel {
           case 'uploadTaskDocument':
             await this.handleUploadTaskDocument(message.data);
             break;
-          case 'syncFigmaTaskLink':
-            await this.handleSyncFigmaTaskLink(message.data);
+          case 'getFigmaBridgeDetail':
+            await this.handleFigmaBridgeDetail('refresh');
             break;
-          case 'updateFigmaNodeSelection':
-            await this.handleUpdateFigmaNodeSelection(message.data);
+          case 'startFigmaMcpBridge':
+            await this.handleFigmaBridgeDetail('start');
             break;
-          case 'copyFigmaNodeTitle':
-            await this.handleCopyFigmaNodeTitle(message.data?.title);
+          case 'showFigmaMcpBridgeStatus':
+            await this.handleFigmaBridgeDetail('show');
+            break;
+          case 'stopFigmaMcpBridge':
+            await this.handleFigmaBridgeDetail('stop');
             break;
           case 'getTaskMarkdown':
             await this.handleGetTaskMarkdown(message.data);
@@ -342,111 +365,57 @@ export class TaskManagerPanel {
     }
   }
 
-  private async handleSyncFigmaTaskLink(request?: TaskFigmaSyncRequest): Promise<void> {
-    if (!request) {
-      return;
-    }
-
+  private async handleFigmaBridgeDetail(action: 'refresh' | 'start' | 'show' | 'stop'): Promise<void> {
     try {
-      const token = await this.resolveFigmaToken(request.token);
-      const result = await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Window,
-          title: 'Syncing Figma link',
-          cancellable: false
-        },
-        async (progress) => {
-          progress.report({ increment: 0, message: 'Connecting to Figma...' });
-          const syncResult = await this.taskManagerService.syncFigmaLink({
-            ...request,
-            token,
-            mode: request.mode || this.mode,
-            itemId: request.itemId || this.currentItemId,
-            itemType: request.itemType || this.currentItemType
-          });
-          progress.report({ increment: 100 });
-          return syncResult;
-        }
-      );
+      if (action === 'start') {
+        await vscode.commands.executeCommand(COMMANDS.FIGMA_MCP_BRIDGE_START);
+      } else if (action === 'stop') {
+        await vscode.commands.executeCommand(COMMANDS.FIGMA_MCP_BRIDGE_STOP);
+      }
 
-      this.applyStateContext(result.state);
+      const detail = await this.getFigmaBridgeDetail();
       this._panel.webview.postMessage({
-        command: 'figmaTaskLinkSyncComplete',
-        data: result
-      });
-      vscode.window.showInformationMessage(`Connected Figma file: ${result.connection.fileName}`);
-    } catch (error) {
-      logger.error('Error syncing Figma link', error as Error);
-      this._panel.webview.postMessage({
-        command: 'figmaTaskLinkSyncFailed',
-        data: { message: (error as Error).message }
-      });
-      vscode.window.showErrorMessage(`Figma sync failed: ${(error as Error).message}`);
-    }
-  }
-
-  private async resolveFigmaToken(token: string | undefined): Promise<string> {
-    const cleanToken = String(token || '').trim();
-    if (cleanToken) {
-      return cleanToken;
-    }
-
-    return this.secretStorage
-      ? (await this.secretStorage.get(FIGMA_ACCESS_TOKEN_SECRET_KEY)) || ''
-      : '';
-  }
-
-  private async handleUpdateFigmaNodeSelection(request?: TaskFigmaNodeSelectionRequest): Promise<void> {
-    if (!request) {
-      return;
-    }
-
-    try {
-      const result = await this.taskManagerService.updateFigmaNodeSelection({
-        ...request,
-        mode: request.mode || this.mode,
-        itemId: request.itemId || this.currentItemId,
-        itemType: request.itemType || this.currentItemType
-      });
-
-      this.applyStateContext(result.state);
-      this._panel.webview.postMessage({
-        command: 'figmaNodeSelectionUpdated',
-        data: result
+        command: 'figmaBridgeDetail',
+        data: detail
       });
     } catch (error) {
-      logger.error('Error updating Figma node selection', error as Error);
+      logger.error('Error loading Figma bridge detail', error as Error);
       this._panel.webview.postMessage({
-        command: 'figmaNodeSelectionFailed',
+        command: 'figmaBridgeDetailFailed',
         data: { message: (error as Error).message }
       });
     }
   }
 
-  private async handleCopyFigmaNodeTitle(title?: string): Promise<void> {
-    const cleanTitle = String(title || '').trim();
+  private async getFigmaBridgeDetail(): Promise<TaskFigmaBridgeDetail> {
+    const status = await this.getFigmaBridgeStatus();
+    const contextPath = this.storageUri
+      ? getFigmaContextPathFromGlobalStorageUri(this.storageUri)
+      : undefined;
+    const context = contextPath
+      ? await readLatestFigmaContextFromPath(contextPath)
+      : undefined;
 
-    if (!cleanTitle) {
-      this._panel.webview.postMessage({
-        command: 'figmaNodeTitleCopyFailed',
-        data: { message: 'No Figma node title to copy.' }
-      });
-      return;
-    }
+    return {
+      status,
+      contextPath,
+      receivedAt: context?.receivedAt,
+      fileName: findFirstStringByKey(context?.payload, ['fileName']),
+      fileKey: findFirstStringByKey(context?.payload, ['fileKey']),
+      pageName: findFirstStringByKey(context?.payload, ['pageName']),
+      items: context ? flattenFigmaBridgeItems(context).slice(0, 200) : []
+    };
+  }
 
-    try {
-      await vscode.env.clipboard.writeText(cleanTitle);
-      this._panel.webview.postMessage({
-        command: 'figmaNodeTitleCopied',
-        data: { title: cleanTitle }
-      });
-    } catch (error) {
-      logger.error('Error copying Figma node title', error as Error);
-      this._panel.webview.postMessage({
-        command: 'figmaNodeTitleCopyFailed',
-        data: { message: (error as Error).message }
-      });
-    }
+  private async getFigmaBridgeStatus(): Promise<FigmaBridgeStatus> {
+    const status = await vscode.commands.executeCommand<FigmaBridgeStatus>(COMMANDS.FIGMA_MCP_BRIDGE_GET_STATUS);
+
+    return status || {
+      running: false,
+      connected: false,
+      port: 8080,
+      url: 'ws://localhost:8080'
+    };
   }
 
   private async handleGetTaskMarkdown(request?: TaskMarkdownRequest): Promise<void> {
@@ -995,4 +964,153 @@ export class TaskManagerPanel {
       }
     }
   }
+}
+
+function flattenFigmaBridgeItems(context: StoredFigmaContext): TaskFigmaBridgeItem[] {
+  const result: TaskFigmaBridgeItem[] = [];
+  const visited = new WeakSet<Record<string, unknown>>();
+  const roots = extractTopLevelFigmaNodes(context.payload);
+  visitFigmaNodeContainer(roots.length > 0 ? roots : context.payload, undefined, result, visited);
+  return result;
+}
+
+function visitFigmaNodeContainer(
+  value: unknown,
+  parentName: string | undefined,
+  result: TaskFigmaBridgeItem[],
+  visited: WeakSet<Record<string, unknown>>
+): void {
+  if (Array.isArray(value)) {
+    value.forEach(item => visitFigmaNodeContainer(item, parentName, result, visited));
+    return;
+  }
+
+  if (!isRecord(value) || visited.has(value)) {
+    return;
+  }
+
+  visited.add(value);
+
+  if (isFigmaNodeLike(value)) {
+    const dimensions = readNodeDimensions(value);
+    const item: TaskFigmaBridgeItem = {
+      id: readString(value.id) ?? readString(value.nodeId),
+      name: readString(value.name),
+      type: readString(value.type),
+      ...(dimensions.width !== undefined ? { width: dimensions.width } : {}),
+      ...(dimensions.height !== undefined ? { height: dimensions.height } : {}),
+      ...(parentName ? { parentName } : {})
+    };
+
+    result.push(item);
+
+    const nextParentName = item.name ?? parentName;
+    ['children', 'nodes', 'selection', 'selectedNodes'].forEach(key => {
+      visitFigmaNodeContainer(value[key], nextParentName, result, visited);
+    });
+    return;
+  }
+
+  ['selection', 'selectedNodes', 'nodes', 'children', 'node', 'document', 'payload', 'data'].forEach(key => {
+    visitFigmaNodeContainer(value[key], parentName, result, visited);
+  });
+}
+
+function extractTopLevelFigmaNodes(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) {
+    return value.filter(isRecord);
+  }
+
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  for (const key of ['selection', 'selectedNodes', 'nodes']) {
+    if (Array.isArray(value[key])) {
+      return value[key].filter(isRecord);
+    }
+  }
+
+  for (const key of ['node', 'document', 'payload', 'data']) {
+    const nested = value[key];
+    if (isRecord(nested) && isFigmaNodeLike(nested)) {
+      return [nested];
+    }
+
+    const nestedNodes = extractTopLevelFigmaNodes(nested);
+    if (nestedNodes.length > 0) {
+      return nestedNodes;
+    }
+  }
+
+  return isFigmaNodeLike(value) ? [value] : [];
+}
+
+function findFirstStringByKey(value: unknown, keys: string[], depth = 0): string | undefined {
+  if (depth > 6) {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const match = findFirstStringByKey(item, keys, depth + 1);
+      if (match) {
+        return match;
+      }
+    }
+
+    return undefined;
+  }
+
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const candidate = readString(value[key]);
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  for (const item of Object.values(value)) {
+    const match = findFirstStringByKey(item, keys, depth + 1);
+    if (match) {
+      return match;
+    }
+  }
+
+  return undefined;
+}
+
+function isFigmaNodeLike(value: Record<string, unknown>): boolean {
+  return (
+    typeof value.id === 'string' ||
+    typeof value.nodeId === 'string' ||
+    (typeof value.name === 'string' && typeof value.type === 'string') ||
+    Array.isArray(value.children)
+  );
+}
+
+function readNodeDimensions(node: Record<string, unknown>): { width?: number; height?: number } {
+  const absoluteBoundingBox = isRecord(node.absoluteBoundingBox) ? node.absoluteBoundingBox : undefined;
+  const bounds = isRecord(node.bounds) ? node.bounds : undefined;
+  const size = isRecord(node.size) ? node.size : undefined;
+
+  return {
+    width: readNumber(node.width) ?? readNumber(absoluteBoundingBox?.width) ?? readNumber(bounds?.width) ?? readNumber(size?.width),
+    height: readNumber(node.height) ?? readNumber(absoluteBoundingBox?.height) ?? readNumber(bounds?.height) ?? readNumber(size?.height)
+  };
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

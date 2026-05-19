@@ -21,7 +21,11 @@ export const COMMANDS = {
   MEMORY_SEARCH: 'nwa.memory.searchMemory',
   MEMORY_SHOW: 'nwa.memory.showMemory',
   MEMORY_CLEAR: 'nwa.memory.clearMemory',
-  MEMORY_REFRESH_TREE: 'nwa.memory.refreshTree'
+  MEMORY_REFRESH_TREE: 'nwa.memory.refreshTree',
+  FIGMA_MCP_BRIDGE_START: 'nwaAgent.startFigmaMcpBridge',
+  FIGMA_MCP_BRIDGE_STOP: 'nwaAgent.stopFigmaMcpBridge',
+  FIGMA_MCP_BRIDGE_STATUS: 'nwaAgent.showFigmaMcpStatus',
+  FIGMA_MCP_BRIDGE_GET_STATUS: 'nwaAgent.getFigmaMcpBridgeStatus'
 } as const;
 
 export const CONFIG_KEYS = {

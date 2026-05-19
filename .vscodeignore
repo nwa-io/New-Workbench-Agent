@@ -7,6 +7,7 @@ esbuild.js
 # Build artifacts (keep bundled files and templates)
 dist/**
 !dist/extension.js
+!dist/mcp/**
 !dist/templates/**
 !dist/lib/**
 !dist/execution/**

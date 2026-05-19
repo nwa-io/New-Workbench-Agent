@@ -69,13 +69,22 @@ let createFormState = {
   isCreating: false
 };
 let figmaFormState = {
-  activeTab: 'task-link',
-  link: '',
-  token: '',
+  status: {
+    running: false,
+    connected: false,
+    port: 8080,
+    url: 'ws://localhost:8080'
+  },
+  items: [],
+  receivedAt: '',
+  fileName: '',
+  fileKey: '',
+  pageName: '',
+  contextPath: '',
   message: '',
   isError: false,
-  isSyncing: false,
-  highlightToken: false
+  isLoading: false,
+  hasRequestedState: false
 };
 let jiraFormState = {
   link: '',

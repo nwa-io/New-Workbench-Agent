@@ -5,8 +5,11 @@
   "version": "0.1.0",
   "publisher": "b0yblake",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.107.0"
   },
+  "extensionKind": [
+    "ui"
+  ],
   "icon": "nwa-agent.png",
   "categories": [
     "Other",
@@ -27,10 +30,19 @@
     "ai-tools"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onCommand:nwaAgent.startFigmaMcpBridge",
+    "onCommand:nwaAgent.stopFigmaMcpBridge",
+    "onCommand:nwaAgent.showFigmaMcpStatus"
   ],
   "main": "dist/extension.js",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "nwaAgent.figmaMcpProvider",
+        "label": "NWA Agent Figma MCP Provider"
+      }
+    ],
     "commands": [
       {
         "command": "nwa.openPanel",
@@ -125,6 +137,18 @@
         "command": "nwa.memory.refreshTree",
         "title": "NWA: Refresh Memory",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "nwaAgent.startFigmaMcpBridge",
+        "title": "NWA Agent: Start Figma MCP Bridge"
+      },
+      {
+        "command": "nwaAgent.stopFigmaMcpBridge",
+        "title": "NWA Agent: Stop Figma MCP Bridge"
+      },
+      {
+        "command": "nwaAgent.showFigmaMcpStatus",
+        "title": "NWA Agent: Show Figma MCP Status"
       }
     ],
     "viewsContainers": {
@@ -316,6 +340,15 @@
         {
           "command": "nwa.memory.refreshTree",
           "when": "false"
+        },
+        {
+          "command": "nwaAgent.startFigmaMcpBridge"
+        },
+        {
+          "command": "nwaAgent.stopFigmaMcpBridge"
+        },
+        {
+          "command": "nwaAgent.showFigmaMcpStatus"
         }
       ],
       "view/item/context": [
@@ -420,7 +453,8 @@
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.19.39",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.107.0",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^6.x",
     "@typescript-eslint/parser": "^6.x",
     "@vscode/vsce": "^2.22.0",
@@ -431,8 +465,11 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "minimatch": "^9.0.3",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "ws": "^8.20.1",
+    "zod": "^4.4.3"
   },
   "author": "b0yblake",
   "license": "MIT",
