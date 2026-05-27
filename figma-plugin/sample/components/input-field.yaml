@@ -1,0 +1,148 @@
+- id: input-field-I824
+  name: Input field
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51484;1380:79522
+  componentProperties:
+    ↳ Required *#7283:190:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    🔀 Icon swap#3473:104:
+      value: mail-01
+      type: INSTANCE_SWAP
+      isOverridden: false
+    Help icon#3285:674:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Hint text#3285:337:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Label#3285:0:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Size:
+      value: sm
+      type: VARIANT
+      isOverridden: false
+    Type:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+    Destructive:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Filled
+      type: VARIANT
+      isOverridden: false
+  width: 50
+  height: 40
+  x: 580
+  'y': 0
+  autoLayout:
+    direction: VERTICAL
+    spacing: 6
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FIXED
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: FIXED
+  layoutSizingVertical: HUG
+  styleRefs:
+    fills:
+      - '@styles/fills#fill-input-field-I824'
+  children:
+    - id: input-with-label-I824
+      name: Input with label
+      type: FRAME
+      isHidden: false
+      figmaId: I8248:51484;1380:79522;117:7642
+      width: 50
+      height: 40
+      autoLayout:
+        direction: VERTICAL
+        spacing: 6
+        primaryAxisAlignItems: CENTER
+        counterAxisAlignItems: MAX
+        primaryAxisSizingMode: AUTO
+        counterAxisSizingMode: FIXED
+        layoutSizingHorizontal: FILL
+        layoutSizingVertical: HUG
+      layoutSizingHorizontal: FILL
+      layoutSizingVertical: HUG
+      layoutAlign: STRETCH
+      children:
+        - id: input-I824
+          name: Input
+          type: FRAME
+          isHidden: false
+          figmaId: I8248:51484;1380:79522;117:7646
+          width: 50
+          height: 40
+          cornerRadius: 8
+          autoLayout:
+            direction: HORIZONTAL
+            spacing: 8
+            counterAxisAlignItems: CENTER
+            padding:
+              top: 8
+              right: 12
+              bottom: 8
+              left: 12
+            primaryAxisSizingMode: FIXED
+            counterAxisSizingMode: AUTO
+            layoutSizingHorizontal: FILL
+            layoutSizingVertical: HUG
+          layoutSizingHorizontal: FILL
+          layoutSizingVertical: HUG
+          layoutAlign: STRETCH
+          styleRefs:
+            fills:
+              - '@styles/fills#fill-input-I824'
+            strokes:
+              - '@styles/strokes#stroke-input-I824'
+            effects:
+              - '@styles/effects#effect-input-I824'
+          children:
+            - id: content-I824
+              name: Content
+              type: FRAME
+              isHidden: false
+              figmaId: I8248:51484;1380:79522;117:7647
+              width: 26
+              height: 24
+              x: 12
+              'y': 8
+              autoLayout:
+                direction: HORIZONTAL
+                spacing: 8
+                primaryAxisAlignItems: MAX
+                counterAxisAlignItems: CENTER
+                primaryAxisSizingMode: FIXED
+                counterAxisSizingMode: AUTO
+                layoutSizingHorizontal: FILL
+                layoutSizingVertical: HUG
+              layoutSizingHorizontal: FILL
+              layoutSizingVertical: HUG
+              layoutGrow: 1
+              children:
+                - id: text-I824
+                  name: Text
+                  type: TEXT
+                  isHidden: false
+                  figmaId: I8248:51484;1380:79522;117:7648
+                  width: 26
+                  height: 24
+                  layoutSizingHorizontal: FILL
+                  layoutSizingVertical: HUG
+                  layoutGrow: 1
+                  text: '1'
+                  styleRefs:
+                    fills:
+                      - '@styles/fills#fill-text-I824'
+                    typography: '@styles/typography#text-text-I824'

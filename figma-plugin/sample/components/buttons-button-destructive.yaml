@@ -1,0 +1,162 @@
+- id: buttons-button-destructive-I824
+  name: Buttons/Button destructive
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51472;14:60695
+  componentProperties:
+    🔀 Icon trailing swap#5969:3:
+      value: placeholder
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Icon leading swap#5969:1:
+      value: x-close
+      type: INSTANCE_SWAP
+      isOverridden: false
+    ➡️ Icon trailing#5969:2:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    ⬅️ Icon leading#5969:0:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Size:
+      value: sm
+      type: VARIANT
+      isOverridden: false
+    Hierarchy:
+      value: Link
+      type: VARIANT
+      isOverridden: false
+    Icon:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 69
+  height: 20
+  x: 12
+  'y': 18
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 6
+    primaryAxisAlignItems: CENTER
+    counterAxisAlignItems: CENTER
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  children:
+    - id: x-close-I824
+      name: x-close
+      type: INSTANCE
+      isHidden: false
+      figmaId: I8248:51472;14:60695;11:25067
+      componentProperties: {}
+      width: 20
+      height: 20
+      layoutSizingHorizontal: FIXED
+      layoutSizingVertical: FIXED
+      filePath: icons/ic_x_close_i8248_51472_14_60695_11_25067.svg
+    - id: text-I824
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8248:51472;14:60695;11:25068
+      width: 43
+      height: 20
+      x: 26
+      'y': 0
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: Reject
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I824'
+        typography: '@styles/typography#text-text-I824'
+- id: buttons-button-destructive-I825
+  name: Buttons/Button destructive
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8255:52115;14:60695
+  componentProperties:
+    🔀 Icon trailing swap#5969:3:
+      value: placeholder
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Icon leading swap#5969:1:
+      value: x-close
+      type: INSTANCE_SWAP
+      isOverridden: false
+    ➡️ Icon trailing#5969:2:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    ⬅️ Icon leading#5969:0:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Size:
+      value: sm
+      type: VARIANT
+      isOverridden: false
+    Hierarchy:
+      value: Link
+      type: VARIANT
+      isOverridden: false
+    Icon:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 69
+  height: 20
+  x: 12
+  'y': 18
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 6
+    primaryAxisAlignItems: CENTER
+    counterAxisAlignItems: CENTER
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  children:
+    - id: x-close-I825
+      name: x-close
+      type: INSTANCE
+      isHidden: false
+      figmaId: I8255:52115;14:60695;11:25067
+      componentProperties: {}
+      width: 20
+      height: 20
+      layoutSizingHorizontal: FIXED
+      layoutSizingVertical: FIXED
+      filePath: icons/ic_x_close_i8255_52115_14_60695_11_25067.svg
+    - id: text-I825
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8255:52115;14:60695;11:25068
+      width: 43
+      height: 20
+      x: 26
+      'y': 0
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: Reject
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I825'
+        typography: '@styles/typography#text-text-I825'

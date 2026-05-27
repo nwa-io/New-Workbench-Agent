@@ -19,8 +19,14 @@ export interface FigmaWebSocketBridge {
 }
 
 export interface NormalizedFigmaMessage {
-  kind: 'figma-context' | 'ping' | 'unknown';
+  kind: 'figma-context' | 'ping' | 'hello' | 'unknown';
   payload?: unknown;
+  info?: {
+    pluginName?: string;
+    version?: string;
+    figmaFileName?: string;
+    figmaPageName?: string;
+  };
 }
 
 export type FigmaBridgeLogger = Pick<vscode.OutputChannel, 'appendLine' | 'show'>;

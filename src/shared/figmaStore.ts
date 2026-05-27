@@ -1,6 +1,9 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import type * as vscode from 'vscode';
+import * as vscode from 'vscode';
+
+export const FIGMA_CONTEXT_RELATIVE_DIR = path.join('.project', 'figma', 'context');
+export const FIGMA_CONTEXT_FILENAME = 'latest-figma-context.json';
 
 export interface StoredFigmaContext {
   source: 'figma-plugin-websocket';
@@ -13,18 +16,26 @@ export interface StoredFigmaContext {
   payload: unknown;
 }
 
+function resolveFigmaStorageDir(globalStorageFsPath: string): string {
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (workspaceRoot) {
+    return path.join(workspaceRoot, FIGMA_CONTEXT_RELATIVE_DIR);
+  }
+  return path.join(globalStorageFsPath, 'figma');
+}
+
 export async function ensureFigmaStorage(context: vscode.ExtensionContext): Promise<string> {
-  const figmaStoragePath = path.join(context.globalStorageUri.fsPath, 'figma');
+  const figmaStoragePath = resolveFigmaStorageDir(context.globalStorageUri.fsPath);
   await fs.mkdir(figmaStoragePath, { recursive: true });
   return figmaStoragePath;
 }
 
 export function getFigmaContextPath(context: vscode.ExtensionContext): string {
-  return getFigmaContextPathFromGlobalStorageUri(context.globalStorageUri);
+  return path.join(resolveFigmaStorageDir(context.globalStorageUri.fsPath), FIGMA_CONTEXT_FILENAME);
 }
 
 export function getFigmaContextPathFromGlobalStorageUri(globalStorageUri: vscode.Uri): string {
-  return path.join(globalStorageUri.fsPath, 'figma', 'latest-figma-context.json');
+  return path.join(resolveFigmaStorageDir(globalStorageUri.fsPath), FIGMA_CONTEXT_FILENAME);
 }
 
 export async function saveLatestFigmaContext(

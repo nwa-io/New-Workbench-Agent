@@ -1,0 +1,453 @@
+- id: card-header-8248
+  name: Card header
+  type: INSTANCE
+  isHidden: false
+  figmaId: '8248:51373'
+  componentProperties:
+    Badge#4918:0:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Divider#3304:145:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Dropdown icon#3281:2103:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Supporting text#3281:2394:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Actions#3281:2006:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Type:
+      value: Normal
+      type: VARIANT
+      isOverridden: false
+    Breakpoint:
+      value: Desktop
+      type: VARIANT
+      isOverridden: false
+  exposedInstances:
+    - name: Badge
+      properties:
+        - property: 🔀 Icon leading swap#3920:433
+          value: arrow-up
+          type: INSTANCE_SWAP
+        - property: 🔀 Flag swap#3918:0
+          value: AU
+          type: INSTANCE_SWAP
+        - property: 🔀 Icon trailing swap#3920:0
+          value: arrow-right
+          type: INSTANCE_SWAP
+        - property: 🔀 Icon swap#591:0
+          value: plus
+          type: INSTANCE_SWAP
+        - property: Size
+          value: sm
+          type: VARIANT
+        - property: Type
+          value: Pill color
+          type: VARIANT
+        - property: Icon
+          value: 'False'
+          type: VARIANT
+        - property: Color
+          value: Brand
+          type: VARIANT
+      overrides:
+        - property: Color
+          value: Brand
+          type: VARIANT
+        - property: Icon
+          value: 'False'
+          type: VARIANT
+        - property: Size
+          value: sm
+          type: VARIANT
+        - property: Type
+          value: Pill color
+          type: VARIANT
+  width: 1136
+  height: 61
+  autoLayout:
+    direction: VERTICAL
+    spacing: 16
+    primaryAxisAlignItems: CENTER
+    primaryAxisSizingMode: FIXED
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FILL
+    layoutSizingVertical: FIXED
+    itemReverseZIndex: true
+  layoutSizingHorizontal: FILL
+  layoutSizingVertical: FIXED
+  layoutAlign: STRETCH
+  styleRefs:
+    fills:
+      - '@styles/fills#fill-card-header-8248'
+  children:
+    - id: content-I824
+      name: Content
+      type: FRAME
+      isHidden: false
+      figmaId: I8248:51373;14:76672
+      width: 1136
+      height: 44
+      autoLayout:
+        direction: HORIZONTAL
+        spacing: 16
+        counterAxisAlignItems: CENTER
+        padding:
+          top: 16
+          right: 24
+          bottom: 0
+          left: 24
+        primaryAxisSizingMode: FIXED
+        counterAxisSizingMode: AUTO
+        layoutSizingHorizontal: FILL
+        layoutSizingVertical: HUG
+      layoutSizingHorizontal: FILL
+      layoutSizingVertical: HUG
+      layoutAlign: STRETCH
+      children:
+        - id: text-and-supporting-text-I824
+          name: Text and supporting text
+          type: FRAME
+          isHidden: false
+          figmaId: I8248:51373;14:76673
+          width: 1088
+          height: 28
+          x: 24
+          'y': 16
+          autoLayout:
+            direction: VERTICAL
+            spacing: 2
+            primaryAxisAlignItems: CENTER
+            primaryAxisSizingMode: AUTO
+            counterAxisSizingMode: FIXED
+            layoutSizingHorizontal: FILL
+            layoutSizingVertical: HUG
+          layoutSizingHorizontal: FILL
+          layoutSizingVertical: HUG
+          layoutGrow: 1
+          children:
+            - id: text-and-badge-I824
+              name: Text and badge
+              type: FRAME
+              isHidden: false
+              figmaId: I8248:51373;14:76674
+              width: 1088
+              height: 28
+              autoLayout:
+                direction: HORIZONTAL
+                spacing: 8
+                counterAxisAlignItems: CENTER
+                primaryAxisSizingMode: FIXED
+                counterAxisSizingMode: AUTO
+                layoutSizingHorizontal: FILL
+                layoutSizingVertical: HUG
+              layoutSizingHorizontal: FILL
+              layoutSizingVertical: HUG
+              layoutAlign: STRETCH
+              children:
+                - id: text-I824
+                  name: Text
+                  type: TEXT
+                  isHidden: false
+                  figmaId: I8248:51373;14:76675
+                  width: 108
+                  height: 28
+                  layoutSizingHorizontal: HUG
+                  layoutSizingVertical: HUG
+                  text: Request List
+                  styleRefs:
+                    fills:
+                      - '@styles/fills#fill-text-I824'
+                    typography: '@styles/typography#text-text-I824'
+                - id: badge-I824
+                  name: Badge
+                  type: INSTANCE_REF
+                  instanceRef: '@components/badge#badge-I824'
+                  x: 116
+                  'y': 3
+                  width: 78
+                  height: 22
+                  overrides:
+                    - property: Color
+                      value: Brand
+                      type: VARIANT
+                    - property: Icon
+                      value: 'False'
+                      type: VARIANT
+                    - property: Size
+                      value: sm
+                      type: VARIANT
+                    - property: Type
+                      value: Pill color
+                      type: VARIANT
+    - id: divider-I824
+      name: Divider
+      type: VECTOR
+      isHidden: false
+      figmaId: I8248:51373;14:76684
+      width: 1136
+      height: 1
+      x: 0
+      'y': 60
+      layoutSizingHorizontal: FILL
+      layoutSizingVertical: FIXED
+      layoutAlign: STRETCH
+      vectorNetwork:
+        vertices:
+          - x: 0
+            'y': 1
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 1136
+            'y': 1
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 0
+            'y': 0
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 1136
+            'y': 0
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+        segments:
+          - start: 0
+            end: 1
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 2
+            end: 0
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 3
+            end: 2
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 1
+            end: 3
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+        regions:
+          - windingRule: EVENODD
+            loops:
+              - - 0
+                - 1
+                - 2
+                - 3
+            fillStyleId: S:99569f8510a51ffd89791bb6c4d57fd45393cdea,7538:5
+            fills:
+              - type: SOLID
+                visible: true
+                opacity: 1
+                blendMode: NORMAL
+                color:
+                  r: 0.9137254953384399
+                  g: 0.9163398742675781
+                  b: 0.9215686321258545
+                boundVariables: {}
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-divider-I824'
+- id: card-header-8255
+  name: Card header
+  type: INSTANCE
+  isHidden: false
+  figmaId: '8255:52907'
+  componentProperties:
+    Badge#4918:0:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Divider#3304:145:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Dropdown icon#3281:2103:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Supporting text#3281:2394:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Actions#3281:2006:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Type:
+      value: Normal
+      type: VARIANT
+      isOverridden: false
+    Breakpoint:
+      value: Desktop
+      type: VARIANT
+      isOverridden: false
+  width: 1136
+  height: 61
+  x: 0
+  'y': 61
+  autoLayout:
+    direction: VERTICAL
+    spacing: 16
+    primaryAxisAlignItems: CENTER
+    primaryAxisSizingMode: FIXED
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FILL
+    layoutSizingVertical: FIXED
+    itemReverseZIndex: true
+  layoutSizingHorizontal: FILL
+  layoutSizingVertical: FIXED
+  layoutAlign: STRETCH
+  styleRefs:
+    fills:
+      - '@styles/fills#fill-card-header-8255'
+  children:
+    - id: content-I825
+      name: Content
+      type: FRAME
+      isHidden: false
+      figmaId: I8255:52907;14:76672
+      width: 1136
+      height: 44
+      autoLayout:
+        direction: HORIZONTAL
+        spacing: 16
+        counterAxisAlignItems: CENTER
+        padding:
+          top: 16
+          right: 24
+          bottom: 0
+          left: 24
+        primaryAxisSizingMode: FIXED
+        counterAxisSizingMode: AUTO
+        layoutSizingHorizontal: FILL
+        layoutSizingVertical: HUG
+      layoutSizingHorizontal: FILL
+      layoutSizingVertical: HUG
+      layoutAlign: STRETCH
+      children: []
+    - id: divider-I825
+      name: Divider
+      type: VECTOR
+      isHidden: false
+      figmaId: I8255:52907;14:76684
+      width: 1136
+      height: 1
+      x: 0
+      'y': 60
+      layoutSizingHorizontal: FILL
+      layoutSizingVertical: FIXED
+      layoutAlign: STRETCH
+      vectorNetwork:
+        vertices:
+          - x: 0
+            'y': 1
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 1136
+            'y': 1
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 0
+            'y': 0
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 1136
+            'y': 0
+            strokeCap: NONE
+            strokeJoin: MITER
+            cornerRadius: 0
+            handleMirroring: NONE
+        segments:
+          - start: 0
+            end: 1
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 2
+            end: 0
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 3
+            end: 2
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 1
+            end: 3
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+        regions:
+          - windingRule: EVENODD
+            loops:
+              - - 0
+                - 1
+                - 2
+                - 3
+            fillStyleId: S:99569f8510a51ffd89791bb6c4d57fd45393cdea,7538:5
+            fills:
+              - type: SOLID
+                visible: true
+                opacity: 1
+                blendMode: NORMAL
+                color:
+                  r: 0.9137254953384399
+                  g: 0.9163398742675781
+                  b: 0.9215686321258545
+                boundVariables: {}
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-divider-I825'

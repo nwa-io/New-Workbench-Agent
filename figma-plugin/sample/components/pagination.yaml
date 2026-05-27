@@ -1,0 +1,223 @@
+- id: pagination-8248
+  name: Pagination
+  type: INSTANCE
+  isHidden: false
+  figmaId: '8248:51484'
+  componentProperties:
+    Type:
+      value: Card button group right aligned
+      type: VARIANT
+      isOverridden: false
+    Shape:
+      value: Square
+      type: VARIANT
+      isOverridden: false
+  width: 1136
+  height: 68
+  x: 0
+  'y': 770
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 8
+    primaryAxisAlignItems: SPACE_BETWEEN
+    counterAxisAlignItems: CENTER
+    padding:
+      top: 12
+      right: 24
+      bottom: 16
+      left: 24
+    primaryAxisSizingMode: FIXED
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: FILL
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: FILL
+  layoutSizingVertical: HUG
+  layoutAlign: STRETCH
+  styleRefs:
+    strokes:
+      - '@styles/strokes#stroke-pagination-8248'
+  children:
+    - id: frame-1-I824
+      name: Frame 1
+      type: FRAME
+      isHidden: false
+      figmaId: I8248:51484;1371:65268
+      width: 277
+      height: 40
+      x: 24
+      'y': 12
+      autoLayout:
+        direction: HORIZONTAL
+        spacing: 8
+        counterAxisAlignItems: CENTER
+        primaryAxisSizingMode: AUTO
+        counterAxisSizingMode: AUTO
+        layoutSizingHorizontal: HUG
+        layoutSizingVertical: HUG
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      children:
+        - id: details-I824
+          name: Details
+          type: TEXT
+          isHidden: false
+          figmaId: I8248:51484;1380:79287
+          width: 109
+          height: 20
+          x: 0
+          'y': 10
+          layoutSizingHorizontal: HUG
+          layoutSizingVertical: HUG
+          text: Records per page
+          styleRefs:
+            fills:
+              - '@styles/fills#fill-details-I824'
+            typography: '@styles/typography#text-details-I824'
+        - id: dropdown-I824
+          name: Dropdown
+          type: INSTANCE_REF
+          instanceRef: '@components/dropdown#dropdown-I824'
+          x: 117
+          'y': 0
+          width: 73
+          height: 40
+          overrides:
+            - property: Open
+              value: 'False'
+              type: VARIANT
+            - property: Type
+              value: Button
+              type: VARIANT
+        - id: details-I824
+          name: Details
+          type: TEXT
+          isHidden: false
+          figmaId: I8248:51484;1371:65269
+          width: 79
+          height: 20
+          x: 198
+          'y': 10
+          layoutSizingHorizontal: HUG
+          layoutSizingVertical: HUG
+          text: 1-75 of 1000
+          styleRefs:
+            fills:
+              - '@styles/fills#fill-details-I824'
+            typography: '@styles/typography#text-details-I824'
+    - id: actions-I824
+      name: Actions
+      type: FRAME
+      isHidden: false
+      figmaId: I8248:51484;1380:79333
+      width: 811
+      height: 40
+      x: 301
+      'y': 12
+      autoLayout:
+        direction: HORIZONTAL
+        spacing: 12
+        primaryAxisAlignItems: MAX
+        counterAxisAlignItems: CENTER
+        primaryAxisSizingMode: FIXED
+        counterAxisSizingMode: AUTO
+        layoutSizingHorizontal: FILL
+        layoutSizingVertical: HUG
+      layoutSizingHorizontal: FILL
+      layoutSizingVertical: HUG
+      layoutGrow: 1
+      children:
+        - id: details-I824
+          name: Details
+          type: TEXT
+          isHidden: false
+          figmaId: I8248:51484;1380:79487
+          width: 35
+          height: 20
+          x: 533
+          'y': 10
+          layoutSizingHorizontal: HUG
+          layoutSizingVertical: HUG
+          text: Go to
+          styleRefs:
+            fills:
+              - '@styles/fills#fill-details-I824'
+            typography: '@styles/typography#text-details-I824'
+        - id: input-field-I824
+          name: Input field
+          type: INSTANCE_REF
+          instanceRef: '@components/input-field#input-field-I824'
+          x: 580
+          'y': 0
+          width: 50
+          height: 40
+          overrides:
+            - property: Destructive
+              value: 'False'
+              type: VARIANT
+            - property: Size
+              value: sm
+              type: VARIANT
+            - property: State
+              value: Filled
+              type: VARIANT
+            - property: Type
+              value: Default
+              type: VARIANT
+        - id: details-I824
+          name: Details
+          type: TEXT
+          isHidden: false
+          figmaId: I8248:51484;1380:79608
+          width: 73
+          height: 20
+          x: 642
+          'y': 10
+          layoutSizingHorizontal: HUG
+          layoutSizingVertical: HUG
+          text: of 50 pages
+          styleRefs:
+            fills:
+              - '@styles/fills#fill-details-I824'
+            typography: '@styles/typography#text-details-I824'
+        - id: buttons-button-I824
+          name: Buttons/Button
+          type: INSTANCE_REF
+          instanceRef: '@components/buttons-button#buttons-button-I824'
+          x: 727
+          'y': 2
+          width: 36
+          height: 36
+          overrides:
+            - property: Hierarchy
+              value: Secondary gray
+              type: VARIANT
+            - property: Icon
+              value: Only
+              type: VARIANT
+            - property: Size
+              value: sm
+              type: VARIANT
+            - property: State
+              value: Default
+              type: VARIANT
+        - id: buttons-button-I824
+          name: Buttons/Button
+          type: INSTANCE_REF
+          instanceRef: '@components/buttons-button#buttons-button-I824'
+          x: 775
+          'y': 2
+          width: 36
+          height: 36
+          overrides:
+            - property: Hierarchy
+              value: Secondary gray
+              type: VARIANT
+            - property: Icon
+              value: Only
+              type: VARIANT
+            - property: Size
+              value: sm
+              type: VARIANT
+            - property: State
+              value: Default
+              type: VARIANT

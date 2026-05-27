@@ -1,0 +1,112 @@
+- id: table-cell-8248
+  name: Table cell
+  type: INSTANCE
+  isHidden: false
+  figmaId: '8248:51386'
+  componentProperties:
+    File name#733:0:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Show dropdown#335:0:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Style:
+      value: Lead text
+      type: VARIANT
+      isOverridden: false
+    Supporting text:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 119
+  height: 56
+  autoLayout:
+    direction: HORIZONTAL
+    counterAxisAlignItems: CENTER
+    padding:
+      top: 8
+      right: 12
+      bottom: 8
+      left: 12
+    primaryAxisSizingMode: FIXED
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FILL
+    layoutSizingVertical: FIXED
+  layoutSizingHorizontal: FILL
+  layoutSizingVertical: FIXED
+  layoutAlign: STRETCH
+  styleRefs:
+    strokes:
+      - '@styles/strokes#stroke-table-cell-8248'
+  children:
+    - id: text-I824
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8248:51386;14:60550
+      width: 91
+      height: 20
+      x: 12
+      'y': 18
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: REQ-2026-001
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I824'
+        typography: '@styles/typography#text-text-I824'
+- id: table-cell-8255
+  name: Table cell
+  type: INSTANCE
+  isHidden: false
+  figmaId: '8255:52843'
+  componentProperties:
+    File name#733:0:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Show dropdown#335:0:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    Style:
+      value: Text
+      type: VARIANT
+      isOverridden: false
+    Supporting text:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 244
+  height: 56
+  x: 0
+  'y': 56
+  autoLayout:
+    direction: HORIZONTAL
+    counterAxisAlignItems: CENTER
+    padding:
+      top: 8
+      right: 12
+      bottom: 8
+      left: 12
+    primaryAxisSizingMode: FIXED
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FILL
+    layoutSizingVertical: FIXED
+  layoutSizingHorizontal: FILL
+  layoutSizingVertical: FIXED
+  layoutAlign: STRETCH
+  styleRefs:
+    strokes:
+      - '@styles/strokes#stroke-table-cell-8255'
+  children: []

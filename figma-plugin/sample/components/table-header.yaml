@@ -1,0 +1,60 @@
+- id: table-header-I824
+  name: Table header
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51376;14:60513
+  componentProperties:
+    Help icon:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+    Arrow:
+      value: Chevron selector
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 79
+  height: 18
+  x: 12
+  'y': 13
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 4
+    counterAxisAlignItems: CENTER
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  children:
+    - id: text-I824
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8248:51376;14:60513;14:60464
+      width: 63
+      height: 18
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: Request ID
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I824'
+        typography: '@styles/typography#text-text-I824'
+    - id: chevron-selector-vertical-I824
+      name: chevron-selector-vertical
+      type: INSTANCE
+      isHidden: false
+      figmaId: I8248:51376;14:60513;6117:152872
+      componentProperties: {}
+      width: 12
+      height: 12
+      x: 67
+      'y': 3
+      layoutSizingHorizontal: FIXED
+      layoutSizingVertical: FIXED
+      filePath: icons/ic_chevron_selector_vertical_i8248_51376_14_60513_6117_152872.svg

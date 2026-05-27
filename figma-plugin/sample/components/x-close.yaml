@@ -1,0 +1,75 @@
+- id: x-close-I824
+  name: x-close
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51483;14:60695;11:25067
+  componentProperties: {}
+  width: 20
+  height: 20
+  autoLayout:
+    direction: HORIZONTAL
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FIXED
+    layoutSizingVertical: FIXED
+  layoutSizingHorizontal: FIXED
+  layoutSizingVertical: FIXED
+  children:
+    - id: icon-I824
+      name: Icon
+      type: VECTOR
+      isHidden: false
+      figmaId: I8248:51483;14:60695;11:25067;12:6471
+      width: 10
+      height: 10
+      x: 5
+      'y': 5
+      layoutSizingHorizontal: FIXED
+      layoutSizingVertical: FIXED
+      vectorNetwork:
+        vertices:
+          - x: 10
+            'y': 0
+            strokeCap: ROUND
+            strokeJoin: ROUND
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 0
+            'y': 10
+            strokeCap: ROUND
+            strokeJoin: ROUND
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 0
+            'y': 0
+            strokeCap: ROUND
+            strokeJoin: ROUND
+            cornerRadius: 0
+            handleMirroring: NONE
+          - x: 10
+            'y': 10
+            strokeCap: ROUND
+            strokeJoin: ROUND
+            cornerRadius: 0
+            handleMirroring: NONE
+        segments:
+          - start: 0
+            end: 1
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+          - start: 2
+            end: 3
+            tangentStart:
+              x: 0
+              'y': 0
+            tangentEnd:
+              x: 0
+              'y': 0
+        regions: []
+      styleRefs:
+        strokes:
+          - '@styles/strokes#stroke-icon-I824'

@@ -70,9 +70,12 @@ export async function startFigmaWebSocketBridge(
       });
     });
 
-    socket.on('close', () => {
+    socket.on('close', (code, reasonBuffer) => {
       clients.delete(socket);
-      outputChannel.appendLine(`[${new Date().toISOString()}] Figma plugin disconnected`);
+      const reason = reasonBuffer?.toString('utf8') || '(no reason)';
+      outputChannel.appendLine(
+        `[${new Date().toISOString()}] Figma plugin disconnected (code=${code}, reason=${reason})`
+      );
     });
 
     socket.on('error', error => {
@@ -124,10 +127,38 @@ async function handleMessage(
     return;
   }
 
+  if (normalized.kind === 'hello') {
+    const info = normalized.info ?? {};
+    const summary = [
+      info.pluginName ? `plugin=${info.pluginName}` : undefined,
+      info.version ? `version=${info.version}` : undefined,
+      info.figmaFileName ? `file=${info.figmaFileName}` : undefined,
+      info.figmaPageName ? `page=${info.figmaPageName}` : undefined
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    outputChannel.appendLine(`[${receivedAt}] Figma plugin handshake received${summary ? ` (${summary})` : ''}`);
+
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'hello_ack', receivedAt }));
+    }
+    return;
+  }
+
   if (normalized.kind === 'figma-context') {
     await saveLatestFigmaContext(context, normalized.payload);
     markPayload(receivedAt);
     outputChannel.appendLine(`[${receivedAt}] Saved latest Figma context from WebSocket message`);
+
+    if (socket.readyState === WebSocket.OPEN) {
+      const requestId = isRecord(parsed.value) ? readString(parsed.value.requestId) : undefined;
+      socket.send(JSON.stringify({
+        type: 'design_spec_ack',
+        ...(requestId ? { requestId } : {}),
+        receivedAt
+      }));
+    }
     return;
   }
 
@@ -148,24 +179,42 @@ export function normalizeFigmaMessage(raw: unknown): NormalizedFigmaMessage {
     return { kind: 'ping' };
   }
 
-  if (isSelectionMessage(messageName) && Object.prototype.hasOwnProperty.call(raw, 'payload')) {
-    return { kind: 'figma-context', payload: raw.payload };
+  if (messageName && isHelloMessage(messageName)) {
+    return {
+      kind: 'hello',
+      info: {
+        pluginName: readString(raw.pluginName),
+        version: readString(raw.version),
+        figmaFileName: readString(raw.figmaFileName) ?? readString(raw.fileName),
+        figmaPageName: readString(raw.figmaPageName) ?? readString(raw.pageName)
+      }
+    };
   }
 
-  if (isSelectionMessage(messageName) && Object.prototype.hasOwnProperty.call(raw, 'data')) {
-    return { kind: 'figma-context', payload: raw.data };
+  const payloadKeys = ['payload', 'data', 'bundle', 'spec', 'context', 'selection', 'nodes'];
+
+  if (isSelectionMessage(messageName)) {
+    for (const key of payloadKeys) {
+      if (Object.prototype.hasOwnProperty.call(raw, key)) {
+        return { kind: 'figma-context', payload: raw[key] };
+      }
+    }
   }
 
   if (hasFigmaNodeData(raw)) {
     return { kind: 'figma-context', payload: raw };
   }
 
-  if (Object.prototype.hasOwnProperty.call(raw, 'payload') && hasFigmaNodeData(raw.payload)) {
-    return { kind: 'figma-context', payload: raw.payload };
+  for (const key of payloadKeys) {
+    if (Object.prototype.hasOwnProperty.call(raw, key) && hasFigmaNodeData(raw[key])) {
+      return { kind: 'figma-context', payload: raw[key] };
+    }
   }
 
-  if (Object.prototype.hasOwnProperty.call(raw, 'data') && hasFigmaNodeData(raw.data)) {
-    return { kind: 'figma-context', payload: raw.data };
+  for (const key of payloadKeys) {
+    if (Object.prototype.hasOwnProperty.call(raw, key)) {
+      return { kind: 'figma-context', payload: raw[key] };
+    }
   }
 
   return { kind: 'unknown' };
@@ -196,6 +245,17 @@ function isPingMessage(messageName: string): boolean {
   return messageName === 'ping' || messageName === 'heartbeat' || messageName.includes('ping');
 }
 
+function isHelloMessage(messageName: string): boolean {
+  return (
+    messageName === 'hello' ||
+    messageName.startsWith('hello_') ||
+    messageName.startsWith('hello-') ||
+    messageName.includes('handshake') ||
+    messageName === 'init' ||
+    messageName === 'connect'
+  );
+}
+
 function isSelectionMessage(messageName: string | undefined): boolean {
   if (!messageName) {
     return false;
@@ -206,7 +266,16 @@ function isSelectionMessage(messageName: string | undefined): boolean {
     messageName.includes('selection') ||
     messageName.includes('selectionchange') ||
     messageName.includes('node') ||
-    messageName.includes('context')
+    messageName.includes('context') ||
+    messageName.includes('design') ||
+    messageName.includes('spec') ||
+    messageName.includes('send') ||
+    messageName.includes('import') ||
+    messageName.includes('sync') ||
+    messageName.includes('export') ||
+    messageName.includes('snapshot') ||
+    messageName.includes('frame') ||
+    messageName.includes('document')
   );
 }
 
@@ -247,11 +316,15 @@ function hasFigmaNodeData(value: unknown, depth = 0): boolean {
     return true;
   }
 
-  return ['payload', 'data'].some(key => hasFigmaNodeData(value[key], depth + 1));
+  return ['payload', 'data', 'bundle', 'spec', 'context'].some(key => hasFigmaNodeData(value[key], depth + 1));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function describeMessage(value: unknown): string {

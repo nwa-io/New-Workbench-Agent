@@ -1,0 +1,27 @@
+{
+  "name": "Figma to VS Code Sender",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma", "dev"],
+  "capabilities": ["codegen"],
+  "codegenLanguages": [
+    { "label": "Plugin", "value": "plugin" }
+  ],
+  "codegenPreferences": [
+    {
+      "itemType": "action",
+      "propertyName": "open-plugin",
+      "label": "Open plugin window"
+    }
+  ],
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": [
+      "ws://localhost:8080",
+      "http://localhost:8080",
+      "wss://localhost:8080",
+      "https://localhost:8080"
+    ]
+  }
+}
