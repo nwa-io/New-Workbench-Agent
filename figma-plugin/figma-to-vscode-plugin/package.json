@@ -1,0 +1,21 @@
+{
+  "name": "figma-to-vscode-plugin",
+  "version": "0.1.0",
+  "description": "Figma plugin that scans the selected node and sends a design spec to a local VS Code extension via WebSocket.",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "@types/js-yaml": "^4.0.9",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.4.5"
+  }
+}

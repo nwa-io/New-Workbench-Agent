@@ -47,9 +47,10 @@ const copyTemplatesPlugin = {
 
 async function main() {
   const ctx = await esbuild.context({
-    entryPoints: ['src/extension.ts'],
+    entryPoints: ['src/extension.ts', 'src/mcp/server.ts'],
     bundle: true,
-    outfile: 'dist/extension.js',
+    outbase: 'src',
+    outdir: 'dist',
     external: ['vscode', 'playwright', 'playwright-core'],
     format: 'cjs',
     platform: 'node',

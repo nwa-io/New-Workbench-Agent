@@ -1,0 +1,81 @@
+- id: table-header-cell-8248
+  name: Table header cell
+  type: INSTANCE
+  isHidden: false
+  figmaId: '8248:51376'
+  componentProperties:
+    Text:
+      value: 'True'
+      type: VARIANT
+      isOverridden: false
+    Checkbox:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+    Color:
+      value: White
+      type: VARIANT
+      isOverridden: false
+  exposedInstances:
+    - name: Table header
+      properties:
+        - property: Help icon
+          value: 'False'
+          type: VARIANT
+        - property: Arrow
+          value: Chevron selector
+          type: VARIANT
+        - property: State
+          value: Default
+          type: VARIANT
+      overrides:
+        - property: Arrow
+          value: Chevron selector
+          type: VARIANT
+        - property: Help icon
+          value: 'False'
+          type: VARIANT
+        - property: State
+          value: Default
+          type: VARIANT
+  width: 124
+  height: 44
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 12
+    counterAxisAlignItems: CENTER
+    padding:
+      top: 12
+      right: 12
+      bottom: 12
+      left: 12
+    primaryAxisSizingMode: FIXED
+    counterAxisSizingMode: FIXED
+    layoutSizingHorizontal: FIXED
+    layoutSizingVertical: FIXED
+  layoutSizingHorizontal: FIXED
+  layoutSizingVertical: FIXED
+  styleRefs:
+    fills:
+      - '@styles/fills#fill-table-header-cell-8248'
+    strokes:
+      - '@styles/strokes#stroke-table-header-cell-8248'
+  children:
+    - id: table-header-I824
+      name: Table header
+      type: INSTANCE_REF
+      instanceRef: '@components/table-header#table-header-I824'
+      x: 12
+      'y': 13
+      width: 79
+      height: 18
+      overrides:
+        - property: Arrow
+          value: Chevron selector
+          type: VARIANT
+        - property: Help icon
+          value: 'False'
+          type: VARIANT
+        - property: State
+          value: Default
+          type: VARIANT

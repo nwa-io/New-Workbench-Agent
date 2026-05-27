@@ -1,11 +1,16 @@
 export function getDetailViewScript(): string {
   return `
 function resetDetailFormState() {
-  figmaFormState.link = '';
+  figmaFormState.items = [];
+  figmaFormState.receivedAt = '';
+  figmaFormState.fileName = '';
+  figmaFormState.fileKey = '';
+  figmaFormState.pageName = '';
+  figmaFormState.contextPath = '';
   figmaFormState.message = '';
   figmaFormState.isError = false;
-  figmaFormState.isSyncing = false;
-  figmaFormState.highlightToken = false;
+  figmaFormState.isLoading = false;
+  figmaFormState.hasRequestedState = false;
   jiraFormState.link = '';
   jiraFormState.message = '';
   jiraFormState.isError = false;

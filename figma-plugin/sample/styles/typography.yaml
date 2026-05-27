@@ -1,0 +1,70 @@
+- id: typograph-text-apr-9-2026-2-41-pm-8255
+  name: Apr 9, 2026 2:41 PM
+  type: text
+  properties:
+    text: Apr 9, 2026 2:41 PM
+    fontFamily: Segoe UI
+    fontSize: 14
+    fontWeight: 400
+    lineHeight:
+      unit: PIXELS
+      value: 20
+    letterSpacing:
+      unit: PIXELS
+      value: 0
+- id: typograph-text-to-apr-9-2026-4-41-pm-8255
+  name: to Apr 9, 2026 4:41 PM
+  type: text
+  properties:
+    text: to Apr 9, 2026 4:41 PM
+    fontFamily: Segoe UI
+    fontSize: 14
+    fontWeight: 400
+    lineHeight:
+      unit: PIXELS
+      value: 20
+    letterSpacing:
+      unit: PIXELS
+      value: 0
+- id: typograph-text-text-I824
+  name: Text
+  type: text
+  properties:
+    text: 11 requests
+    fontFamily: Segoe UI
+    fontSize: 12
+    fontWeight: 400
+    lineHeight:
+      unit: PIXELS
+      value: 18
+    letterSpacing:
+      unit: PERCENT
+      value: 0
+- id: typograph-text-details-I824
+  name: Details
+  type: text
+  properties:
+    text: of 50 pages
+    fontFamily: Segoe UI
+    fontSize: 14
+    fontWeight: 400
+    lineHeight:
+      unit: PIXELS
+      value: 20
+    letterSpacing:
+      unit: PERCENT
+      value: 0
+- id: typograph-text-text-I825
+  name: Text
+  type: text
+  properties:
+    text: Approve
+    fontFamily: Inter
+    fontSize: 14
+    fontWeight: 600
+    lineHeight:
+      unit: PIXELS
+      value: 20
+    letterSpacing:
+      unit: PERCENT
+      value: 0

@@ -211,36 +211,12 @@ window.addEventListener('message', event => {
     showWorkflowErrorPopup(markdownDialogState.message);
     refreshDetailView();
     renderMarkdownDialog();
-  } else if (message.command === 'figmaTaskLinkSyncComplete') {
-    applyTaskState(message.data.state, true);
-    figmaFormState.isSyncing = false;
-    figmaFormState.isError = false;
-    figmaFormState.highlightToken = false;
-    figmaFormState.activeTab = 'task-link';
-    figmaFormState.link = message.data.connection.link || figmaFormState.link;
-    figmaFormState.message = 'Connected to ' + message.data.connection.fileName + '.';
+  } else if (message.command === 'figmaBridgeDetail') {
+    applyFigmaBridgeDetail(message.data);
     refreshDetailView();
-  } else if (message.command === 'figmaTaskLinkSyncFailed') {
-    figmaFormState.isSyncing = false;
-    figmaFormState.isError = true;
-    figmaFormState.message = message.data.message || 'Figma sync failed.';
+  } else if (message.command === 'figmaBridgeDetailFailed') {
+    failFigmaBridgeDetail(message.data.message);
     renderDetail();
-  } else if (message.command === 'figmaNodeSelectionUpdated') {
-    applyTaskState(message.data.state, true);
-    renderTree();
-    updateFigmaNodeSelectionUi(taskState.figma);
-  } else if (message.command === 'figmaNodeSelectionFailed') {
-    figmaFormState.isError = true;
-    figmaFormState.message = message.data.message || 'Figma node selection failed.';
-    renderDetail();
-  } else if (message.command === 'figmaNodeTitleCopied') {
-    figmaFormState.isError = false;
-    figmaFormState.message = 'Copied title: ' + message.data.title;
-    updateFigmaNodeSelectionUi(taskState.figma);
-  } else if (message.command === 'figmaNodeTitleCopyFailed') {
-    figmaFormState.isError = true;
-    figmaFormState.message = message.data.message || 'Copy title failed.';
-    updateFigmaNodeSelectionUi(taskState.figma);
   } else if (message.command === 'jiraOpenComplete') {
     applyTaskState(message.data.state, true);
     jiraFormState.isOpening = false;

@@ -1,0 +1,80 @@
+- id: stroke-table-8248
+  name: Table
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-pagination-8248
+  name: Pagination
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-table-cell-8248
+  name: Table cell
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-table-cell-8255
+  name: Table cell
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-table-header-cell-8248
+  name: Table header cell
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-input-I824
+  name: Input
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#d5d7da'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-buttons-button-I824
+  name: Buttons/Button
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#d5d7da'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-icon-I824
+  name: Icon
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#079455'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-badge-I824
+  name: Badge
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#f3ddff'
+    opacity: 1
+    blendMode: NORMAL
+- id: stroke-icon-I825
+  name: Icon
+  type: stroke
+  properties:
+    type: SOLID
+    color: '#079455'
+    opacity: 1
+    blendMode: NORMAL

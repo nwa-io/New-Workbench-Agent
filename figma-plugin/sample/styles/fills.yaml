@@ -1,0 +1,136 @@
+- id: fill-table-8248
+  name: Table
+  type: fill
+  properties:
+    type: SOLID
+    color: '#fdfdfd'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-content-8248
+  name: Content
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-frame-40861-8248
+  name: Frame 40861
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-apr-9-2026-2-41-pm-8255
+  name: Apr 9, 2026 2:41 PM
+  type: fill
+  properties:
+    type: SOLID
+    color: '#101828'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-to-apr-9-2026-4-41-pm-8255
+  name: to Apr 9, 2026 4:41 PM
+  type: fill
+  properties:
+    type: SOLID
+    color: '#6a7282'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-card-header-8255
+  name: Card header
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-text-I824
+  name: Text
+  type: fill
+  properties:
+    type: SOLID
+    color: '#390854'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-divider-I825
+  name: Divider
+  type: fill
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-details-I824
+  name: Details
+  type: fill
+  properties:
+    type: SOLID
+    color: '#414651'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-table-header-cell-8248
+  name: Table header cell
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-input-field-I824
+  name: Input field
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-input-I824
+  name: Input
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-buttons-button-I824
+  name: Buttons/Button
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-badge-I824
+  name: Badge
+  type: fill
+  properties:
+    type: SOLID
+    color: '#fcf7ff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-card-header-8248
+  name: Card header
+  type: fill
+  properties:
+    type: SOLID
+    color: '#ffffff'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-divider-I824
+  name: Divider
+  type: fill
+  properties:
+    type: SOLID
+    color: '#e9eaeb'
+    opacity: 1
+    blendMode: NORMAL
+- id: fill-text-I825
+  name: Text
+  type: fill
+  properties:
+    type: SOLID
+    color: '#079455'
+    opacity: 1
+    blendMode: NORMAL

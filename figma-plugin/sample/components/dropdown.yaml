@@ -1,0 +1,48 @@
+- id: dropdown-I824
+  name: Dropdown
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51484;1371:65252
+  componentProperties:
+    Type:
+      value: Button
+      type: VARIANT
+      isOverridden: false
+    Open:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+  width: 73
+  height: 40
+  x: 117
+  'y': 0
+  autoLayout:
+    direction: VERTICAL
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  children:
+    - id: buttons-button-I824
+      name: Buttons/Button
+      type: INSTANCE_REF
+      instanceRef: '@components/buttons-button#buttons-button-I824'
+      x: null
+      'y': null
+      width: 73
+      height: 40
+      overrides:
+        - property: Hierarchy
+          value: Secondary gray
+          type: VARIANT
+        - property: Icon
+          value: Default
+          type: VARIANT
+        - property: Size
+          value: md
+          type: VARIANT
+        - property: State
+          value: Default
+          type: VARIANT

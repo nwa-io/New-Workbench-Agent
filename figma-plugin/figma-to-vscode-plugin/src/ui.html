@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Figma to VS Code Sender</title>
+    <style>
+      :root {
+        --bg: #f7f8fb;
+        --surface: #ffffff;
+        --surface-2: #f9fafb;
+        --fg: #1f2937;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --border-strong: #d1d5db;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --accent-purple: #8b5cf6;
+        --accent-purple-soft: #ede9fe;
+        --accent-purple-strong: #6d28d9;
+        --accent-purple-2: #7c3aed;
+        --success: #047857;
+        --error: #b91c1c;
+        --warn: #92400e;
+
+        --grad-card: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+        --grad-icon: linear-gradient(135deg, #f97316 0%, #ef4444 35%, #8b5cf6 100%);
+        --grad-action: linear-gradient(90deg, #4f8fe7 0%, #8b5cf6 50%, #f59e0b 100%);
+        --grad-purple: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
+        background: var(--bg); color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+        font-size: 12px; line-height: 1.45;
+      }
+
+      .app {
+        display: flex; flex-direction: column;
+        height: 100vh; position: relative;
+      }
+
+      /* ---- Selection card -------------------------------------------------- */
+      #selection-card-wrap.hide { display: none; }
+      .selection-card {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; background: var(--grad-card);
+        border-bottom: 1px solid #e0e7ff;
+      }
+      .selection-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: var(--grad-icon); display: flex;
+        align-items: center; justify-content: center;
+        color: #fff; flex: 0 0 32px;
+      }
+      .selection-icon.empty { background: #d1d5db; }
+      .selection-info { flex: 1 1 auto; min-width: 0; }
+      .selection-name {
+        font-size: 13px; font-weight: 600; color: #111827;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .selection-sub {
+        font-size: 11px; color: var(--muted);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .icon-btn {
+        width: 26px; height: 26px; border-radius: 7px;
+        border: 1px solid #e5e7eb; background: #fff; color: #4b5563;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; padding: 0; flex: 0 0 26px;
+      }
+      .icon-btn:hover:not(:disabled) { background: #f3f4f6; color: #111827; }
+      .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      .conn-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 8px; font-size: 10px; font-weight: 700;
+        letter-spacing: 0.04em; border-radius: 6px;
+        background: #e5e7eb; color: #374151;
+      }
+      .conn-pill .dot {
+        width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
+      }
+      .conn-pill.ok      { background: #d1fae5; color: #065f46; }
+      .conn-pill.ok      .dot { background: #10b981; }
+      .conn-pill.warn    { background: #fef3c7; color: #92400e; }
+      .conn-pill.warn    .dot { background: #f59e0b;
+                                animation: pulse 1s infinite ease-in-out; }
+      .conn-pill.err     { background: #fee2e2; color: #991b1b; }
+      .conn-pill.err     .dot { background: #ef4444; }
+      @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+      /* ---- Views (full-screen pages) -------------------------------------- */
+      .view {
+        display: none; flex: 1; flex-direction: column;
+        min-height: 0; background: var(--surface);
+      }
+      .view.active { display: flex; }
+
+      /* ---- Tabs (main view) ----------------------------------------------- */
+      .tabs {
+        display: flex; gap: 2px; padding: 6px 8px 0;
+        background: var(--bg); border-bottom: 1px solid var(--border);
+        overflow-x: auto; flex: 0 0 auto;
+      }
+      .tab {
+        padding: 6px 10px; font-size: 11px; font-weight: 600;
+        color: var(--muted); cursor: pointer; border: 0;
+        background: transparent; border-radius: 6px 6px 0 0;
+        white-space: nowrap;
+      }
+      .tab:hover { color: var(--fg); }
+      .tab.active {
+        color: var(--primary); background: var(--surface);
+        border: 1px solid var(--border); border-bottom-color: var(--surface);
+        margin-bottom: -1px;
+      }
+
+      .panel { display: none; flex: 1; overflow: auto;
+               padding: 12px; background: var(--surface); }
+      .panel.active { display: flex; flex-direction: column; gap: 10px; }
+
+      /* ---- Form basics ----------------------------------------------------- */
+      label { font-size: 11px; font-weight: 600; color: #374151; }
+      input[type="text"], input[type="number"], input[type="url"],
+      select, textarea {
+        width: 100%; padding: 8px 10px; font-size: 12px; font-family: inherit;
+        border: 1px solid var(--border); border-radius: 8px;
+        background: #fff; color: var(--fg);
+      }
+      input:focus, select:focus, textarea:focus {
+        outline: none; border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      }
+      textarea { resize: vertical; min-height: 60px; font-family: ui-monospace,
+                 SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+      .row { display: flex; gap: 6px; align-items: center; }
+      .row > * { flex: 1; }
+      .row > .auto { flex: 0 0 auto; }
+
+      .btn {
+        padding: 8px 12px; border: 0; border-radius: 8px;
+        font-size: 12px; font-weight: 600; cursor: pointer;
+        font-family: inherit; display: inline-flex; align-items: center;
+        justify-content: center; gap: 6px;
+      }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .btn-primary   { background: var(--primary); color: #fff; }
+      .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+      .btn-secondary {
+        background: #fff; color: var(--fg);
+        border: 1px solid var(--border-strong);
+      }
+      .btn-secondary:hover:not(:disabled) { background: #f9fafb; }
+      .btn-gradient {
+        background: var(--grad-action); color: #fff;
+        padding: 10px 14px; border-radius: 10px;
+      }
+      .btn-gradient:hover:not(:disabled) { filter: brightness(1.05); }
+      .btn-danger {
+        background: #fee2e2; color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+      .btn-tiny { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
+
+      /* ---- Cards / lists --------------------------------------------------- */
+      .card {
+        border: 1px solid var(--border); border-radius: 8px;
+        padding: 10px; background: #fff;
+      }
+      .card + .card { margin-top: 6px; }
+      .card-title { font-weight: 600; font-size: 12px; color: #111827; }
+      .card-sub   { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+      .list { display: flex; flex-direction: column; gap: 6px; }
+      .empty {
+        padding: 16px; text-align: center; color: var(--muted);
+        border: 1px dashed var(--border); border-radius: 8px;
+      }
+
+      .badge {
+        display: inline-block; font-size: 10px; font-weight: 700;
+        letter-spacing: 0.04em; padding: 2px 6px; border-radius: 4px;
+        background: #e0e7ff; color: #3730a3;
+      }
+      .badge.ok    { background: #d1fae5; color: #065f46; }
+      .badge.warn  { background: #fef3c7; color: #92400e; }
+      .badge.err   { background: #fee2e2; color: #991b1b; }
+      .badge.muted { background: #e5e7eb; color: #4b5563; }
+
+      .status {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 11px; color: var(--muted);
+        padding: 8px 10px; border: 1px solid var(--border);
+        border-radius: 6px; background: #fafafa;
+        white-space: pre-wrap; max-height: 160px; overflow: auto;
+      }
+      .status.success { color: var(--success); }
+      .status.error   { color: var(--error); }
+      .status.warn    { color: var(--warn); }
+
+      .stat-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+      }
+      .stat {
+        padding: 8px 10px; border: 1px solid var(--border);
+        border-radius: 8px; background: #fff;
+      }
+      .stat .v { font-size: 16px; font-weight: 700; color: #111827; }
+      .stat .l { font-size: 11px; color: var(--muted); }
+
+      /* ---- Section heads ------------------------------------------------- */
+      .section-head {
+        display: flex; align-items: center; gap: 6px;
+        margin-top: 4px;
+      }
+      .section-title {
+        font-size: 11px; font-weight: 700; color: #374151;
+        text-transform: uppercase; letter-spacing: 0.04em;
+      }
+
+      /* ---- Selection tree ------------------------------------------------ */
+      .export-workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        min-width: 0;
+      }
+      .export-workspace.with-node {
+        grid-template-columns: minmax(260px, 1fr) minmax(260px, 0.9fr);
+      }
+      .export-tree-pane {
+        min-width: 0;
+      }
+      .tree {
+        border: 1px solid var(--border); border-radius: 8px;
+        background: #fff; height: 260px; max-height: 42vh; overflow: auto;
+        padding: 4px;
+        overscroll-behavior: contain;
+      }
+      .tree-row {
+        display: inline-flex; align-items: center; gap: 4px;
+        min-width: 100%; width: max-content;
+        padding: 3px 4px; border-radius: 5px;
+        font-size: 11.5px; cursor: default; white-space: nowrap;
+      }
+      .tree-row:hover { background: var(--surface-2); }
+      .tree-row.active {
+        background: #eef2ff;
+        box-shadow: inset 0 0 0 1px #a5b4fc;
+      }
+      .tree-caret {
+        width: 14px; height: 14px; flex: 0 0 14px;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #9ca3af;
+        transition: transform 0.1s;
+      }
+      .tree-caret.collapsed { transform: rotate(-90deg); }
+      .tree-caret.leaf { visibility: hidden; }
+      .tree-dot {
+        width: 8px; height: 8px; border-radius: 2px; flex: 0 0 8px;
+        border: 1.5px solid #9ca3af;
+      }
+      .tree-dot.instance { border-color: var(--accent-purple); border-radius: 50%; }
+      .tree-dot.instance.matched { background: var(--accent-purple); }
+      .tree-dot.text { border-color: #2563eb; }
+      .tree-dot.vector { border-color: #f59e0b; border-radius: 50%; background: #f59e0b; }
+      .tree-name {
+        font-weight: 500; color: #111827;
+        overflow: visible; text-overflow: clip;
+      }
+      .tree-type {
+        font-size: 9.5px; font-weight: 700; color: #9ca3af;
+        letter-spacing: 0.03em; flex: 0 0 auto;
+      }
+      .tree-children.collapsed { display: none; }
+
+      .node-panel {
+        min-height: 240px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 10px;
+      }
+      .node-panel[hidden] { display: none; }
+      .node-panel-empty {
+        min-height: 218px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--muted);
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .node-summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .node-summary-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        border: 1px solid var(--border-strong);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        background: #f8fafc;
+        flex: 0 0 30px;
+      }
+      .node-summary-main { flex: 1; min-width: 0; }
+      .node-summary-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: #111827;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .node-summary-type {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .node-panel-section {
+        margin-top: 10px;
+      }
+      .node-panel-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 5px;
+      }
+      .node-panel-value {
+        font-size: 11px;
+        color: #374151;
+        overflow-wrap: anywhere;
+      }
+      .node-panel-value.missing {
+        color: #9ca3af;
+        font-style: italic;
+      }
+      .node-panel-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .node-panel-actions .btn {
+        width: 100%;
+        min-width: 0;
+      }
+      .node-panel-actions .full {
+        grid-column: 1 / -1;
+      }
+
+      /* ---- Review table -------------------------------------------------- */
+      .review-top { display: flex; gap: 6px; align-items: center; }
+      .count-pill {
+        background: rgba(255,255,255,0.28); color: #fff;
+        font-size: 11px; font-weight: 700;
+        padding: 1px 7px; border-radius: 999px;
+      }
+      .review-table {
+        border: 1px solid var(--border); border-radius: 8px;
+        overflow: hidden; background: #fff;
+      }
+      .review-row {
+        display: grid; grid-template-columns: 1.1fr 1fr 1.2fr;
+        gap: 8px; padding: 8px 10px;
+        border-bottom: 1px solid var(--border); font-size: 11px;
+        align-items: center;
+      }
+      .review-row:last-child { border-bottom: 0; }
+      .review-head {
+        background: var(--surface-2);
+        font-weight: 700; color: #6b7280;
+        text-transform: uppercase; letter-spacing: 0.03em; font-size: 10px;
+      }
+      .rc-component { display: flex; flex-direction: column; }
+      .rc-component .nm { font-weight: 600; color: #111827; }
+      .rc-component .ty { font-size: 9.5px; color: #9ca3af; font-weight: 700; }
+      .rc-value { color: #111827; word-break: break-word; }
+      .rc-value.missing { color: #9ca3af; font-style: italic; }
+      .rc-value.missing::before {
+        content: "✕ "; font-style: normal; color: #d1d5db;
+      }
+
+      /* ---- Page header (Settings, sub-pages) ----------------------------- */
+      .page-header {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 14px; border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .page-back {
+        width: 28px; height: 28px; border-radius: 7px;
+        border: 1px solid var(--border); background: #fff;
+        cursor: pointer; display: inline-flex;
+        align-items: center; justify-content: center;
+        color: #4b5563; padding: 0;
+      }
+      .page-back:hover { background: #f3f4f6; color: #111827; }
+      .page-title { font-size: 14px; font-weight: 700; color: #111827; }
+
+      .page-body { flex: 1; overflow: auto; padding: 12px; }
+
+      /* ---- Settings list -------------------------------------------------- */
+      .settings-item {
+        width: 100%; display: flex; align-items: center; gap: 12px;
+        padding: 12px; border: 1px solid var(--border); border-radius: 12px;
+        background: #fff; cursor: pointer; text-align: left;
+      }
+      .settings-item:hover { background: #f9fafb; border-color: var(--border-strong); }
+      .settings-item + .settings-item { margin-top: 8px; }
+      .settings-item-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: var(--grad-purple);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; flex: 0 0 38px;
+      }
+      .settings-item-info { flex: 1; min-width: 0; }
+      .settings-item-name { font-size: 13px; font-weight: 600; color: #111827; }
+      .settings-item-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+      .settings-item-chev { color: #9ca3af; font-size: 16px; flex: 0 0 auto; }
+
+      /* ---- Component Records Manager ------------------------------------- */
+      .records-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 14px 14px 10px;
+      }
+      .records-header-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: var(--grad-purple);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff;
+      }
+      .records-header-title-block { flex: 1; min-width: 0; }
+      .records-header-title {
+        font-size: 15px; font-weight: 700; color: #111827;
+      }
+      .records-header-sub {
+        font-size: 11px; color: var(--accent-purple-2); font-weight: 600;
+      }
+      .records-close {
+        width: 28px; height: 28px; border-radius: 7px;
+        border: 0; background: transparent;
+        cursor: pointer; color: var(--muted); font-size: 18px;
+        line-height: 1;
+      }
+      .records-close:hover { background: #f3f4f6; color: #111827; }
+
+      .records-stats-bar {
+        display: flex; align-items: center; gap: 10px;
+        padding: 0 14px 12px; border-bottom: 1px solid var(--border);
+      }
+      .records-stats-icon {
+        width: 26px; height: 26px; border-radius: 7px;
+        background: #ede9fe; color: var(--accent-purple-strong);
+        display: flex; align-items: center; justify-content: center;
+        flex: 0 0 26px;
+      }
+      .records-stats-info { flex: 1; min-width: 0; }
+      .records-stats-count {
+        font-size: 14px; font-weight: 700; color: #111827;
+      }
+      .records-stats-sub { font-size: 11px; color: var(--muted); }
+      .records-actions { display: flex; gap: 6px; }
+
+      .btn-pill {
+        padding: 7px 12px; border: 1px solid var(--border-strong);
+        background: #fff; color: var(--fg);
+        border-radius: 999px; font-size: 12px; font-weight: 600;
+        cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        font-family: inherit;
+      }
+      .btn-pill:hover:not(:disabled) { background: #f9fafb; }
+      .btn-pill:disabled { opacity: 0.55; cursor: not-allowed; }
+      .btn-pill-dark {
+        background: #111827; color: #fff; border-color: #111827;
+      }
+      .btn-pill-dark:hover:not(:disabled) { background: #1f2937; }
+      .btn-pill .count {
+        font-size: 10px; font-weight: 700;
+        background: rgba(139, 92, 246, 0.15); color: var(--accent-purple-strong);
+        padding: 1px 6px; border-radius: 999px;
+      }
+
+      .records-search-wrap {
+        position: relative; padding: 12px 14px;
+      }
+      .records-search-wrap .si {
+        position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
+        color: #9ca3af; pointer-events: none;
+      }
+      .records-search-wrap input {
+        padding-left: 32px; background: var(--surface-2);
+        border: 1px solid var(--border);
+      }
+
+      .records-list-wrap {
+        flex: 1; overflow: auto; padding: 0 14px 12px;
+        display: flex; flex-direction: column; gap: 10px;
+      }
+
+      .record-card {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px; border: 1px solid var(--border);
+        border-radius: 12px; background: #fff;
+      }
+      .record-card-avatar {
+        width: 42px; height: 42px; border-radius: 10px;
+        background: var(--grad-icon); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: 700; flex: 0 0 42px;
+        text-transform: uppercase;
+      }
+      .record-card-body { flex: 1; min-width: 0; }
+      .record-card-name {
+        font-size: 13px; font-weight: 700; color: #111827;
+      }
+      .record-card-figma {
+        font-size: 11px; color: var(--muted); margin-top: 1px;
+      }
+      .record-card-path {
+        margin-top: 6px;
+        display: inline-block; max-width: 100%;
+        padding: 4px 8px; border-radius: 6px;
+        background: var(--surface-2); border: 1px solid var(--border);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 10.5px; color: #4b5563;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .record-card-actions {
+        display: flex; gap: 4px; flex: 0 0 auto;
+      }
+      .record-action {
+        width: 30px; height: 30px; border-radius: 8px;
+        border: 1px solid var(--border); background: #fff;
+        cursor: pointer; color: #4b5563; padding: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .record-action:hover { background: #f3f4f6; color: #111827; }
+      .record-action.danger:hover { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+
+      .records-empty-state {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 32px 24px; text-align: center; gap: 8px;
+      }
+      .records-empty-icon {
+        width: 56px; height: 56px; border-radius: 12px;
+        background: #f3f4f6; display: flex;
+        align-items: center; justify-content: center;
+        color: #6b7280; margin-bottom: 6px;
+      }
+      .records-empty-title { font-size: 16px; font-weight: 700; color: #111827; }
+      .records-empty-sub { font-size: 12px; color: var(--muted); }
+      .records-empty-state .btn-pill { margin-top: 10px; }
+
+      .records-footer {
+        padding: 8px 14px; border-top: 1px solid var(--border);
+        font-size: 11px; color: var(--muted); background: var(--surface-2);
+      }
+
+      /* ---- Bottom action bar --------------------------------------------- */
+      .bottom-bar {
+        flex: 0 0 auto;
+        display: flex; gap: 6px;
+        padding: 8px 10px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .bottom-btn {
+        padding: 7px 10px; border: 1px solid var(--border);
+        background: #fff; color: var(--fg);
+        border-radius: 8px; font-size: 12px; font-weight: 600;
+        cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        font-family: inherit;
+      }
+      .bottom-btn:hover { background: var(--surface-2); }
+      .bottom-btn .lbl { color: var(--muted); font-weight: 500; }
+
+      /* ---- Modal --------------------------------------------------------- */
+      .modal-overlay {
+        position: absolute; inset: 0;
+        background: rgba(15, 23, 42, 0.42);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 100; padding: 14px;
+      }
+      .modal-overlay[hidden] { display: none; }
+      .modal {
+        width: 100%; max-width: 520px;
+        max-height: calc(100% - 28px);
+        background: #fff; border-radius: 14px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+      }
+      .modal-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 14px; border-bottom: 1px solid var(--border);
+      }
+      .modal-header-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: var(--grad-icon); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 700;
+      }
+      .modal-header-text { flex: 1; min-width: 0; }
+      .modal-title { font-size: 14px; font-weight: 700; color: #111827; }
+      .modal-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+      .modal-close {
+        width: 28px; height: 28px; border-radius: 7px;
+        border: 0; background: transparent; cursor: pointer;
+        color: var(--muted); font-size: 18px; line-height: 1;
+      }
+      .modal-close:hover { background: #f3f4f6; color: #111827; }
+
+      .modal-body {
+        flex: 1; overflow: auto; padding: 14px;
+        display: flex; flex-direction: column; gap: 14px;
+      }
+      .form-field { display: flex; flex-direction: column; gap: 4px; }
+      .form-field label {
+        font-size: 12px; font-weight: 600; color: #111827;
+      }
+      .form-field .req { color: #ef4444; margin-left: 2px; }
+      .form-field .help { font-size: 11px; color: var(--muted); }
+      .form-field.error input,
+      .form-field.error textarea,
+      .form-field.error select {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+      }
+      .form-field.error .help { color: var(--error); }
+
+      /* ---- Combobox (Figma Name autocomplete) ---------------------------- */
+      .combo { position: relative; }
+      .combo-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0;
+        z-index: 50; margin-top: 3px;
+        max-height: 180px; overflow-y: auto;
+        background: #fff; border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+      }
+      .combo-dropdown[hidden] { display: none; }
+      .combo-option {
+        padding: 7px 10px; font-size: 12px; cursor: pointer;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .combo-option:last-child { border-bottom: 0; }
+      .combo-option:hover,
+      .combo-option.active { background: var(--accent-purple-soft); }
+      .combo-empty {
+        padding: 8px 10px; font-size: 11px; color: var(--muted);
+      }
+
+      details.advanced {
+        border: 1px dashed var(--border); border-radius: 8px;
+        padding: 8px 10px; background: var(--surface-2);
+      }
+      details.advanced summary {
+        cursor: pointer; font-size: 11px; font-weight: 600;
+        color: var(--muted);
+      }
+      details.advanced[open] summary { margin-bottom: 8px; }
+      details.advanced .form-field + .form-field { margin-top: 10px; }
+
+      .modal-footer {
+        display: flex; gap: 8px; justify-content: flex-end;
+        padding: 12px 14px; border-top: 1px solid var(--border);
+        background: var(--surface-2);
+      }
+      .modal-primary {
+        background: var(--accent-purple-2); color: #fff;
+        padding: 8px 14px; border-radius: 8px;
+        border: 0; font-weight: 600; cursor: pointer; font-family: inherit;
+        display: inline-flex; align-items: center; gap: 6px;
+      }
+      .modal-primary:hover { background: var(--accent-purple-strong); }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- Selection card (visible only on main view) -->
+      <div id="selection-card-wrap">
+        <div class="selection-card">
+          <div id="selection-icon" class="selection-icon empty">
+            <svg id="icon-check" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none">
+              <path d="M3.5 8.5l3 3 6-6" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg id="icon-empty" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="selection-info">
+            <div id="selection-name" class="selection-name">No selection</div>
+            <div id="selection-sub" class="selection-sub">Select a frame / component / section</div>
+          </div>
+          <button id="expand-btn" class="icon-btn" title="Select frame + all descendants" disabled>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="1.5"
+                    stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5.5 5.5h2M5.5 8h5M5.5 10.5h3.5"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button id="zoom-btn" class="icon-btn" title="Zoom to selection" disabled>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <circle cx="7" cy="7" r="4.25" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10.2 10.2L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <span id="conn-pill" class="conn-pill"><span class="dot"></span><span id="conn-label">Offline</span></span>
+        </div>
+      </div>
+
+      <!-- Main view: tabs -->
+      <div id="view-main" class="view active">
+        <nav class="tabs">
+          <button class="tab active" data-tab="connection">Connection</button>
+          <button class="tab"        data-tab="export">Export</button>
+          <button class="tab"        data-tab="tokens">Tokens</button>
+          <button class="tab"        data-tab="assets">Assets</button>
+          <button class="tab"        data-tab="report">Report</button>
+        </nav>
+
+        <section id="panel-connection" class="panel active">
+          <div>
+            <label for="ws-url">VS Code WebSocket URL</label>
+            <div class="row" style="margin-top:4px">
+              <input id="ws-url" type="text" value="ws://localhost:8080" spellcheck="false" />
+              <button id="reconnect-btn" class="btn btn-secondary auto">Reconnect</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Handshake</div>
+            <div class="card-sub" id="handshake-info">No handshake yet.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Catalogs</div>
+            <div class="card-sub" id="catalog-info">No catalog received from VS Code yet.</div>
+            <div class="row" style="margin-top:6px">
+              <button id="request-catalog-btn" class="btn btn-secondary btn-tiny auto">Request catalog</button>
+            </div>
+          </div>
+
+          <div id="conn-status" class="status">Idle.</div>
+        </section>
+
+        <section id="panel-export" class="panel">
+          <!-- ===== Export main view: tree + unmatched ===== -->
+          <div id="export-main">
+            <div class="row">
+              <button id="scan-btn" class="btn btn-secondary" disabled>Scan selection</button>
+              <button id="autofill-btn" class="btn btn-secondary" disabled>Run Auto-Fill</button>
+            </div>
+
+            <div id="export-workspace" class="export-workspace">
+              <div class="export-tree-pane">
+                <div class="section-head">
+                  <span class="section-title">Selection tree</span>
+                  <span id="tree-count" class="badge muted">0</span>
+                </div>
+                <div id="selection-tree" class="tree">
+                  <div class="empty">Select a frame and press Scan.</div>
+                </div>
+              </div>
+
+              <aside id="tree-node-panel" class="node-panel" hidden>
+                <div class="node-panel-empty">
+                  Select a node from the tree to create a component or mapping.
+                </div>
+              </aside>
+            </div>
+
+            <div class="section-head">
+              <span class="section-title">Unmatched components</span>
+              <span id="unmatched-count" class="badge muted">0</span>
+            </div>
+            <div id="unmatched-list" class="list">
+              <div class="empty">Nothing scanned yet.</div>
+            </div>
+
+            <div id="export-status" class="status">Pick a frame, then Scan.</div>
+
+            <button id="review-export-btn" class="btn btn-gradient" disabled>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5" stroke="currentColor"
+                      stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Review &amp; Export
+            </button>
+          </div>
+
+          <!-- ===== Export review view: component table ===== -->
+          <div id="export-review" style="display:none">
+            <div class="review-top">
+              <button id="review-back-btn" class="page-back" title="Back">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M9.5 3l-5 5 5 5" stroke="currentColor" stroke-width="1.75"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button id="do-export-btn" class="btn btn-gradient" style="flex:1">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 2.5v8M4.5 7l3.5 3.5L11.5 7" stroke="currentColor"
+                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2.5 13.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Export <span id="export-count" class="count-pill">0</span>
+              </button>
+            </div>
+
+            <div class="review-table">
+              <div class="review-row review-head">
+                <div class="rc-component">Component</div>
+                <div class="rc-code">Code Component</div>
+                <div class="rc-path">Code File Path</div>
+              </div>
+              <div id="review-rows"></div>
+            </div>
+
+            <div class="row" style="margin-top:8px">
+              <button id="review-download-btn" class="btn btn-secondary">Download ZIP</button>
+              <button id="review-download-json-btn" class="btn btn-secondary">Download JSON</button>
+            </div>
+
+            <div id="review-status" class="status">Review the components, then Export.</div>
+          </div>
+        </section>
+
+        <section id="panel-tokens" class="panel">
+          <div class="section-head">
+            <span class="section-title">Design tokens</span>
+            <span id="token-count" class="badge muted">0</span>
+          </div>
+          <div id="token-info" class="card-sub">
+            Extracted automatically when you scan a selection. Bound variables,
+            text styles and effects are matched against the VS Code token catalog.
+          </div>
+          <div id="token-list" class="list"></div>
+        </section>
+
+        <section id="panel-assets" class="panel">
+          <div id="asset-info" class="card-sub">
+            Mark a node as Icon / Image / Vector to export it instead of inlining its layout.
+          </div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn btn-tiny btn-secondary"  data-mark="icon">Mark icon</button>
+            <button class="btn btn-tiny btn-secondary"  data-mark="image">Mark image</button>
+            <button class="btn btn-tiny btn-secondary"  data-mark="vector">Mark vector</button>
+            <button class="btn btn-tiny btn-secondary"  data-mark="ignored">Ignore</button>
+            <button class="btn btn-tiny btn-secondary"  data-mark="clear">Clear</button>
+          </div>
+          <div id="asset-list" class="list"></div>
+        </section>
+
+        <section id="panel-report" class="panel">
+          <div id="report-stats" class="stat-grid">
+            <div class="stat"><div class="v" id="rs-matched">0</div><div class="l">Matched components</div></div>
+            <div class="stat"><div class="v" id="rs-unmatched">0</div><div class="l">Unmatched</div></div>
+            <div class="stat"><div class="v" id="rs-confidence">0%</div><div class="l">Avg confidence</div></div>
+            <div class="stat"><div class="v" id="rs-token">0%</div><div class="l">Token coverage</div></div>
+            <div class="stat"><div class="v" id="rs-assets">0</div><div class="l">Assets exported</div></div>
+            <div class="stat"><div class="v" id="rs-tokens">0</div><div class="l">Tokens used</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Unmatched components</div>
+            <div id="rs-unmatched-list" class="list"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Missing tokens</div>
+            <div id="rs-missing-tokens" class="list"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Settings view -->
+      <div id="view-settings" class="view">
+        <div class="page-header">
+          <button id="settings-back" class="page-back" title="Back">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M9.5 3l-5 5 5 5" stroke="currentColor" stroke-width="1.75"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="page-title">Settings</div>
+        </div>
+        <div class="page-body">
+          <button id="open-records-manager" class="settings-item">
+            <div class="settings-item-icon">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <rect x="2.5" y="2.5" width="11" height="11" rx="2"
+                      stroke="currentColor" stroke-width="1.5"/>
+                <path d="M5 6h6M5 8.5h6M5 11h4" stroke="currentColor"
+                      stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-name">Component Records Manager</div>
+              <div class="settings-item-sub">Manage source-code components mapped from Figma</div>
+            </div>
+            <div class="settings-item-chev">›</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Component Records Manager view -->
+      <div id="view-records" class="view">
+        <div class="records-header">
+          <div class="records-header-icon">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="2"
+                    stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 6h6M5 8.5h6M5 11h4" stroke="currentColor"
+                    stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="records-header-title-block">
+            <div class="records-header-title">Component Records Manager</div>
+            <div class="records-header-sub" id="records-project-name">Local</div>
+          </div>
+          <button id="records-close" class="records-close" title="Back to settings">×</button>
+        </div>
+
+        <div class="records-stats-bar">
+          <div class="records-stats-icon">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M2 6l6-3 6 3-6 3-6-3z" stroke="currentColor" stroke-width="1.5"
+                    stroke-linejoin="round"/>
+              <path d="M2 10l6 3 6-3" stroke="currentColor" stroke-width="1.5"
+                    stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="records-stats-info">
+            <div class="records-stats-count"><span id="records-count">0</span> Records</div>
+            <div class="records-stats-sub">Total components</div>
+          </div>
+          <div class="records-actions">
+            <button id="records-export-btn" class="btn-pill" title="Download mappings as JSON">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2.5v8M4.5 7l3.5 3.5L11.5 7" stroke="currentColor"
+                      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2.5 13.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Export
+              <span class="count" id="records-export-count">0</span>
+            </button>
+            <button id="records-add-btn" class="btn-pill btn-pill-dark">
+              <span>+</span> Add Record
+            </button>
+          </div>
+        </div>
+
+        <div class="records-search-wrap">
+          <span class="si">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <circle cx="7" cy="7" r="4.25" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10.2 10.2L13.5 13.5" stroke="currentColor"
+                    stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input id="records-search" type="text"
+                 placeholder="Search by component name, figma name, or file path..." />
+        </div>
+
+        <div id="records-list-wrap" class="records-list-wrap"></div>
+
+        <div id="records-empty-state" class="records-empty-state" hidden>
+          <div class="records-empty-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6z"
+                    stroke="currentColor" stroke-width="1.5"
+                    stroke-linejoin="round"/>
+              <path d="M14 3v6h6" stroke="currentColor" stroke-width="1.5"
+                    stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="records-empty-title">No records yet</div>
+          <div class="records-empty-sub">Create your first component record to get started</div>
+          <button id="records-add-first-btn" class="btn-pill">
+            <span>+</span> Add First Record
+          </button>
+        </div>
+
+        <div class="records-footer">
+          <span id="records-footer-count">0 records total</span>
+        </div>
+      </div>
+
+      <!-- Bottom action bar -->
+      <div class="bottom-bar">
+        <button id="open-settings-btn" class="bottom-btn" title="Open settings">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 1.5v1.8M8 12.7v1.8M14.5 8h-1.8M3.3 8H1.5M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3M12.6 12.6l-1.3-1.3M4.7 4.7L3.4 3.4"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Settings
+          <span class="lbl">· Component Records</span>
+        </button>
+      </div>
+
+      <!-- Add / Edit Record modal -->
+      <div id="record-modal" class="modal-overlay" hidden>
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-header-icon" id="modal-header-icon">+</div>
+            <div class="modal-header-text">
+              <div class="modal-title" id="modal-title">Add New Component Record</div>
+              <div class="modal-sub" id="modal-sub">Create a new component mapping</div>
+            </div>
+            <button class="modal-close" id="modal-close" title="Close">×</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-field" id="ff-code-component">
+              <label>Code Component <span class="req">*</span></label>
+              <input id="rec-code-component" type="text" placeholder="ButtonPrimary" autocomplete="off" />
+              <div class="help">The name of the component in your codebase</div>
+            </div>
+
+            <div class="form-field">
+              <label>Figma Name</label>
+              <div class="combo">
+                <input id="rec-figma-name" type="text" placeholder="Button/Primary"
+                       autocomplete="off" />
+                <div id="figma-name-dropdown" class="combo-dropdown" hidden></div>
+              </div>
+              <div class="help" id="rec-figma-name-help">The name of the component as it appears in Figma</div>
+            </div>
+
+            <div class="form-field">
+              <label>Code File Path</label>
+              <input id="rec-code-path" type="text" placeholder="src/components/Button/ButtonPrimary.tsx" autocomplete="off" />
+              <div class="help">Path to the component file in your project</div>
+            </div>
+
+            <div class="form-field">
+              <label>Preview UI URL</label>
+              <input id="rec-preview-url" type="url" placeholder="https://storybook.example.com/?path=/story/button--primary" autocomplete="off" />
+              <div class="help">Optional. Link to a live preview (Storybook, deployed app, etc.)</div>
+            </div>
+
+            <details class="advanced">
+              <summary>Advanced</summary>
+
+              <div class="form-field">
+                <label>Figma Component Key</label>
+                <input id="rec-figma-key" type="text" placeholder="abc123def456..." autocomplete="off" />
+                <div class="help">Most stable identifier. Optional but recommended.</div>
+              </div>
+
+              <div class="form-field">
+                <label>Import Type</label>
+                <select id="rec-import-type">
+                  <option value="named">named</option>
+                  <option value="default">default</option>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label>Import Name (when default import)</label>
+                <input id="rec-import-name" type="text" placeholder="Button" autocomplete="off" />
+              </div>
+
+              <div class="form-field">
+                <label>Prop Mapping (JSON · figmaProp → codeProp)</label>
+                <textarea id="rec-prop-mapping" placeholder='{ "label": "children" }'></textarea>
+              </div>
+
+              <div class="form-field">
+                <label>Default Props (JSON)</label>
+                <textarea id="rec-default-props" placeholder='{ "variant": "primary" }'></textarea>
+              </div>
+
+              <div class="form-field">
+                <label style="display:inline-flex;align-items:center;gap:6px">
+                  <input id="rec-merge-children" type="checkbox" style="width:auto" />
+                  Merge first text child as <code>children</code>
+                </label>
+              </div>
+
+              <div class="form-field">
+                <label>Confidence (0..1)</label>
+                <input id="rec-confidence" type="number" min="0" max="1" step="0.05" value="1" />
+              </div>
+            </details>
+          </div>
+
+          <div class="modal-footer">
+            <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+            <button id="modal-create" class="modal-primary">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M3.5 8.5l3 3 6-6" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span id="modal-create-label">Create Record</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="ui.js"></script>
+  </body>
+</html>

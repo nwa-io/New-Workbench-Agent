@@ -1,0 +1,44 @@
+version: '1.0'
+exportDate: '2026-05-18T08:17:52.156Z'
+files:
+  - frame.yaml
+  - components/card-header.yaml
+  - components/badge.yaml
+  - components/table-header-cell.yaml
+  - components/table-header.yaml
+  - components/table-cell.yaml
+  - components/buttons-button-destructive.yaml
+  - components/buttons-button.yaml
+  - components/x-close.yaml
+  - components/check.yaml
+  - components/pagination.yaml
+  - components/dropdown.yaml
+  - components/input-field.yaml
+  - styles/fills.yaml
+  - styles/strokes.yaml
+  - styles/effects.yaml
+  - styles/typography.yaml
+  - icons/ic_chevron_selector_vertical_i8248_51376_14_60513_6117_152872.svg
+  - icons/ic_chevron_selector_vertical_i8248_51377_14_60513_6117_152872.svg
+  - icons/ic_chevron_selector_vertical_i8248_51378_14_60513_6117_152872.svg
+  - icons/ic_chevron_selector_vertical_i8248_51379_14_60513_6117_152872.svg
+  - icons/ic_chevron_selector_vertical_i8248_51380_14_60513_6117_152872.svg
+  - icons/ic_chevron_selector_vertical_i8248_51382_14_60513_6117_152872.svg
+  - icons/ic_x_close_i8248_51472_14_60695_11_25067.svg
+  - icons/ic_icon_i8248_51472_14_60695_11_25067_12_6471.svg
+  - icons/ic_check_i8248_51472_14_60696_11_24221.svg
+  - icons/ic_x_close_i8248_51475_14_60695_11_25067.svg
+  - icons/ic_icon_i8248_51475_14_60695_11_25067_12_6471.svg
+  - icons/ic_check_i8248_51475_14_60696_11_24221.svg
+  - icons/ic_x_close_i8255_52115_14_60695_11_25067.svg
+  - icons/ic_icon_i8255_52115_14_60695_11_25067_12_6471.svg
+  - icons/ic_check_i8255_52115_14_60696_11_24221.svg
+  - icons/ic_x_close_i8248_51481_14_60695_11_25067.svg
+  - icons/ic_icon_i8248_51481_14_60695_11_25067_12_6471.svg
+  - icons/ic_check_i8248_51481_14_60696_11_24221.svg
+  - icons/ic_chevron_down_i8248_51484_1371_65252_14_28967_11_23218.svg
+  - icons/ic_arrow_left_i8248_51484_1380_79334_11_24351.svg
+  - icons/ic_icon_i8248_51484_1380_79334_11_24351_12_5758.svg
+  - icons/ic_arrow_right_i8248_51484_1380_79335_11_24351.svg
+  - icons/ic_icon_i8248_51484_1380_79335_11_24351_12_5785.svg
+  - images/.placeholder

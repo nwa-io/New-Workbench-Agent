@@ -1,0 +1,79 @@
+- id: badge-I824
+  name: Badge
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51373;14:76676
+  componentProperties:
+    🔀 Icon leading swap#3920:433:
+      value: arrow-up
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Flag swap#3918:0:
+      value: AU
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Icon trailing swap#3920:0:
+      value: arrow-right
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Icon swap#591:0:
+      value: plus
+      type: INSTANCE_SWAP
+      isOverridden: false
+    Size:
+      value: sm
+      type: VARIANT
+      isOverridden: false
+    Type:
+      value: Pill color
+      type: VARIANT
+      isOverridden: false
+    Icon:
+      value: 'False'
+      type: VARIANT
+      isOverridden: false
+    Color:
+      value: Brand
+      type: VARIANT
+      isOverridden: false
+  width: 78
+  height: 22
+  x: 116
+  'y': 3
+  cornerRadius: 16
+  autoLayout:
+    direction: HORIZONTAL
+    counterAxisAlignItems: CENTER
+    padding:
+      top: 2
+      right: 8
+      bottom: 2
+      left: 8
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  styleRefs:
+    fills:
+      - '@styles/fills#fill-badge-I824'
+    strokes:
+      - '@styles/strokes#stroke-badge-I824'
+  children:
+    - id: text-I824
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8248:51373;14:76676;17:12024
+      width: 62
+      height: 18
+      x: 8
+      'y': 2
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: 11 requests
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I824'
+        typography: '@styles/typography#text-text-I824'

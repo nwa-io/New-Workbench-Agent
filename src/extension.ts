@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import path from 'path';
 import { registerCommands } from './commands/registerCommands';
 import { InstalledAgentsProvider } from './providers/InstalledAgentsProvider';
 import { AvailableAgentsProvider } from './providers/AvailableAgentsProvider';
@@ -10,8 +11,16 @@ import { MemoryService } from './features/memory/MemoryService';
 import { logger } from './utils/logger';
 import { COMMANDS, TREE_VIEW_IDS, GLOBAL_STATE_KEYS } from './utils/constants';
 import { ClaudeContextProvider } from './providers/ClaudeContextProvider';
+import { startFigmaWebSocketBridge } from './figmaBridge/startFigmaWebSocketBridge';
+import { FIGMA_BRIDGE_PORT, FIGMA_BRIDGE_URL, FigmaBridgeStatus, FigmaWebSocketBridge } from './figmaBridge/types';
+import { getFigmaContextPath } from './shared/figmaStore';
+
+let figmaBridge: FigmaWebSocketBridge | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+  const nwaOutputChannel = vscode.window.createOutputChannel('NWA Agent');
+  context.subscriptions.push(nwaOutputChannel);
+
   const configService = new ConfigService();
   const fileSystemService = new FileSystemService();
 
@@ -79,6 +88,10 @@ export function activate(context: vscode.ExtensionContext) {
     memoryProvider
   });
 
+  registerFigmaMcpBridgeCommands(context, nwaOutputChannel);
+  registerFigmaMcpServerDefinitionProvider(context);
+  void startFigmaBridgeIfNeeded(context, nwaOutputChannel, false);
+
   // Setup file watchers
   setupFileWatchers(context, installedAgentsProvider);
 
@@ -86,6 +99,153 @@ export function activate(context: vscode.ExtensionContext) {
   createStatusBarItem(context);
 
   logger.info('AgentKit extension activated successfully');
+}
+
+function registerFigmaMcpBridgeCommands(
+  context: vscode.ExtensionContext,
+  outputChannel: vscode.OutputChannel
+): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(COMMANDS.FIGMA_MCP_BRIDGE_START, async () => {
+      return await startFigmaBridgeIfNeeded(context, outputChannel, true);
+    }),
+    vscode.commands.registerCommand(COMMANDS.FIGMA_MCP_BRIDGE_STOP, async () => {
+      return await stopFigmaBridgeIfRunning(outputChannel, true);
+    }),
+    vscode.commands.registerCommand(COMMANDS.FIGMA_MCP_BRIDGE_STATUS, async () => {
+      return await showFigmaBridgeStatus(outputChannel);
+    }),
+    vscode.commands.registerCommand(COMMANDS.FIGMA_MCP_BRIDGE_GET_STATUS, () => {
+      return getFigmaBridgeStatus();
+    })
+  );
+}
+
+function registerFigmaMcpServerDefinitionProvider(context: vscode.ExtensionContext): void {
+  const figmaContextPath = getFigmaContextPath(context);
+  const mcpServerPath = path.join(context.extensionUri.fsPath, 'dist', 'mcp', 'server.js');
+  const extensionVersion = String(context.extension.packageJSON.version ?? '0.1.0');
+
+  context.subscriptions.push(
+    vscode.lm.registerMcpServerDefinitionProvider('nwaAgent.figmaMcpProvider', {
+      provideMcpServerDefinitions: async () => {
+        const env = {
+          ['FIGMA_CONTEXT_PATH']: figmaContextPath,
+          ['NWA_AGENT_MCP_MODE']: 'vscode-extension'
+        };
+        const server = new vscode.McpStdioServerDefinition(
+          'NWA Agent Figma MCP',
+          process.execPath,
+          [mcpServerPath],
+          env,
+          extensionVersion
+        );
+        server.cwd = context.extensionUri;
+        return [server];
+      },
+      resolveMcpServerDefinition: async server => server
+    })
+  );
+}
+
+async function startFigmaBridgeIfNeeded(
+  context: vscode.ExtensionContext,
+  outputChannel: vscode.OutputChannel,
+  showInstruction: boolean
+): Promise<FigmaBridgeStatus> {
+  if (figmaBridge) {
+    outputChannel.appendLine(`[${new Date().toISOString()}] Figma MCP bridge is already running at ${FIGMA_BRIDGE_URL}`);
+    if (showInstruction) {
+      await showFigmaBridgeStatus(outputChannel);
+    }
+    return getFigmaBridgeStatus();
+  }
+
+  try {
+    figmaBridge = await startFigmaWebSocketBridge(context, outputChannel);
+    if (showInstruction) {
+      await showFigmaBridgeStatus(outputChannel);
+    }
+    return getFigmaBridgeStatus();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    outputChannel.appendLine(`[${new Date().toISOString()}] Failed to start Figma MCP bridge: ${message}`);
+    outputChannel.show();
+    void vscode.window.showErrorMessage(`Failed to start Figma MCP bridge on ${FIGMA_BRIDGE_URL}: ${message}`);
+    return getFigmaBridgeStatus();
+  }
+}
+
+async function stopFigmaBridgeIfRunning(
+  outputChannel: vscode.OutputChannel,
+  showMessage: boolean
+): Promise<FigmaBridgeStatus> {
+  if (!figmaBridge) {
+    outputChannel.appendLine(`[${new Date().toISOString()}] Figma MCP bridge is not running`);
+    if (showMessage) {
+      void vscode.window.showInformationMessage('Figma MCP bridge is not running.');
+    }
+    return getFigmaBridgeStatus();
+  }
+
+  try {
+    await figmaBridge.stop();
+    figmaBridge = undefined;
+    outputChannel.appendLine(`[${new Date().toISOString()}] Figma MCP bridge stopped`);
+    if (showMessage) {
+      void vscode.window.showInformationMessage('Figma MCP bridge stopped.');
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    outputChannel.appendLine(`[${new Date().toISOString()}] Failed to stop Figma MCP bridge: ${message}`);
+    outputChannel.show();
+    void vscode.window.showErrorMessage(`Failed to stop Figma MCP bridge: ${message}`);
+  }
+
+  return getFigmaBridgeStatus();
+}
+
+async function showFigmaBridgeStatus(outputChannel: vscode.OutputChannel): Promise<FigmaBridgeStatus> {
+  const status = getFigmaBridgeStatus();
+
+  outputChannel.appendLine(`[${new Date().toISOString()}] Figma MCP bridge status: ${JSON.stringify(status, null, 2)}`);
+  outputChannel.appendLine(getFigmaBridgeInstructions());
+  outputChannel.show();
+
+  await vscode.window.showInformationMessage(
+    'MCP/Figma bridge is ready. Use Server Address ws://localhost and Port 8080 in the Figma plugin, then click Connect to Server. This VS Code extension registers the MCP server automatically. No Cursor MCP configuration is required.'
+  );
+
+  return status;
+}
+
+function getFigmaBridgeInstructions(): string {
+  return [
+    'MCP/Figma bridge is ready.',
+    '',
+    'Use this configuration in the Figma plugin:',
+    '',
+    'Server Address:',
+    'ws://localhost',
+    '',
+    'Port:',
+    '8080',
+    '',
+    'Then click:',
+    'Connect to Server',
+    '',
+    'This VS Code extension registers the MCP server automatically.',
+    'No Cursor MCP configuration is required.'
+  ].join('\n');
+}
+
+function getFigmaBridgeStatus(): FigmaBridgeStatus {
+  return figmaBridge?.getStatus() ?? {
+    running: false,
+    connected: false,
+    port: FIGMA_BRIDGE_PORT,
+    url: FIGMA_BRIDGE_URL
+  };
 }
 
 function setupFileWatchers(
@@ -175,7 +335,17 @@ async function showWelcomeMessageIfNeeded(
   }
 }
 
-export function deactivate() {
+export async function deactivate(): Promise<void> {
+  if (figmaBridge) {
+    try {
+      await figmaBridge.stop();
+    } catch (error) {
+      logger.error('Failed to stop Figma MCP bridge during deactivation', error as Error);
+    } finally {
+      figmaBridge = undefined;
+    }
+  }
+
   logger.info('NWA extension deactivated');
   logger.dispose();
 }

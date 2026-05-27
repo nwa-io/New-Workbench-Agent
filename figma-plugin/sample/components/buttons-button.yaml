@@ -1,0 +1,162 @@
+- id: buttons-button-I824
+  name: Buttons/Button
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8248:51472;14:60696
+  componentProperties:
+    🔀 Icon trailing swap#3466:852:
+      value: placeholder
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Icon leading swap#3466:91:
+      value: check
+      type: INSTANCE_SWAP
+      isOverridden: false
+    ➡️ Icon trailing#3287:2338:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    ⬅️ Icon leading#3287:1577:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Size:
+      value: sm
+      type: VARIANT
+      isOverridden: false
+    Hierarchy:
+      value: Link color
+      type: VARIANT
+      isOverridden: false
+    Icon:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 84
+  height: 20
+  x: 93
+  'y': 18
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 6
+    primaryAxisAlignItems: CENTER
+    counterAxisAlignItems: CENTER
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  children:
+    - id: check-I824
+      name: check
+      type: INSTANCE
+      isHidden: false
+      figmaId: I8248:51472;14:60696;11:24221
+      componentProperties: {}
+      width: 20
+      height: 20
+      layoutSizingHorizontal: FIXED
+      layoutSizingVertical: FIXED
+      filePath: icons/ic_check_i8248_51472_14_60696_11_24221.svg
+    - id: text-I824
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8248:51472;14:60696;11:24222
+      width: 58
+      height: 20
+      x: 26
+      'y': 0
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: Approve
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I824'
+        typography: '@styles/typography#text-text-I824'
+- id: buttons-button-I825
+  name: Buttons/Button
+  type: INSTANCE
+  isHidden: false
+  figmaId: I8255:52115;14:60696
+  componentProperties:
+    🔀 Icon trailing swap#3466:852:
+      value: placeholder
+      type: INSTANCE_SWAP
+      isOverridden: false
+    🔀 Icon leading swap#3466:91:
+      value: check
+      type: INSTANCE_SWAP
+      isOverridden: false
+    ➡️ Icon trailing#3287:2338:
+      value: false
+      type: BOOLEAN
+      isOverridden: false
+    ⬅️ Icon leading#3287:1577:
+      value: true
+      type: BOOLEAN
+      isOverridden: false
+    Size:
+      value: sm
+      type: VARIANT
+      isOverridden: false
+    Hierarchy:
+      value: Link color
+      type: VARIANT
+      isOverridden: false
+    Icon:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+    State:
+      value: Default
+      type: VARIANT
+      isOverridden: false
+  width: 84
+  height: 20
+  x: 93
+  'y': 18
+  autoLayout:
+    direction: HORIZONTAL
+    spacing: 6
+    primaryAxisAlignItems: CENTER
+    counterAxisAlignItems: CENTER
+    primaryAxisSizingMode: AUTO
+    counterAxisSizingMode: AUTO
+    layoutSizingHorizontal: HUG
+    layoutSizingVertical: HUG
+  layoutSizingHorizontal: HUG
+  layoutSizingVertical: HUG
+  children:
+    - id: check-I825
+      name: check
+      type: INSTANCE
+      isHidden: false
+      figmaId: I8255:52115;14:60696;11:24221
+      componentProperties: {}
+      width: 20
+      height: 20
+      layoutSizingHorizontal: FIXED
+      layoutSizingVertical: FIXED
+      filePath: icons/ic_check_i8255_52115_14_60696_11_24221.svg
+    - id: text-I825
+      name: Text
+      type: TEXT
+      isHidden: false
+      figmaId: I8255:52115;14:60696;11:24222
+      width: 58
+      height: 20
+      x: 26
+      'y': 0
+      layoutSizingHorizontal: HUG
+      layoutSizingVertical: HUG
+      text: Approve
+      styleRefs:
+        fills:
+          - '@styles/fills#fill-text-I825'
+        typography: '@styles/typography#text-text-I825'
