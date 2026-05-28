@@ -1,21 +1,11 @@
 {
-  "name": "Figma to VS Code Sender",
-  "id": "figma-to-vscode-sender-nwa",
+  "name": "Figma Clarity",
+  "id": "figma-clarity-nwa",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
   "editorType": ["figma", "dev"],
-  "capabilities": ["codegen"],
-  "codegenLanguages": [
-    { "label": "Plugin", "value": "plugin" }
-  ],
-  "codegenPreferences": [
-    {
-      "itemType": "action",
-      "propertyName": "open-plugin",
-      "label": "Open plugin window"
-    }
-  ],
+  "capabilities": ["inspect"],
   "networkAccess": {
     "allowedDomains": ["none"],
     "devAllowedDomains": [
