@@ -1,0 +1,12 @@
+{
+  "name": "@nwa/step-review-human",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Review by Human workflow step (scaffold). Pauses the workflow for manual review.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/workflow-sdk": "*"
+  },
+  "license": "MIT"
+}

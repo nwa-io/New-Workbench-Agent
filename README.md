@@ -124,17 +124,9 @@ All commands are available from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift
 - `New Workbench Agent: Quick Setup` - Install from a preset.
 - `New Workbench Agent: Initialize Agents` - Run guided setup.
 - `New Workbench Agent: Init Resource Claude` - Open Claude Resource Manager.
-- `New Workbench Agent: Refresh Installed Agents` - Refresh sidebar views.
-- `New Workbench Agent: Update Agents` - Update installed agents.
-- `New Workbench Agent: Remove Agents` - Remove installed agent resources.
 - `New Workbench Agent: Open Settings` - Open extension settings.
 
 ## 🐛 Troubleshooting
-
-### Agents not showing in sidebar
-
-1. Click the refresh icon in the sidebar.
-2. Or run `New Workbench Agent: Refresh Installed Agents`.
 
 ### Agents not working with Cursor
 

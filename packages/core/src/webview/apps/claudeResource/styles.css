@@ -1,0 +1,208 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+  padding: 20px;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.container.has-install-bar {
+  padding-bottom: 116px;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 10px;
+  color: var(--vscode-editor-foreground);
+}
+
+.subtitle {
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 30px;
+}
+
+.step {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.step-name {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.resource-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 6px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.resource-item:hover {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+.resource-item input[type="checkbox"] {
+  transform: scale(1.1);
+  flex-shrink: 0;
+}
+
+.resource-name {
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.install-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  width: min(860px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  padding: 14px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 18px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000;
+}
+
+.install-bar.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.install-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.install-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.install-detail {
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.install-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.install-actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+}
+
+.install-actions button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+#install-claude-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+#install-claude-btn:hover:enabled {
+  background: var(--vscode-button-hoverBackground);
+}
+
+#cancel-install-claude-btn {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+#cancel-install-claude-btn:hover:enabled {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+@media (max-width: 620px) {
+  .install-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .install-actions {
+    justify-content: flex-end;
+  }
+}

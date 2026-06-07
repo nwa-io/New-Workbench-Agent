@@ -1,0 +1,12 @@
+{
+  "name": "@nwa/spec-generator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spec/markdown brief generation strategy (pure). Fills the task markdown guide from collected document/figma/jira context. Not a workflow step — a strategy library core delegates to.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/workflow-sdk": "*"
+  },
+  "license": "MIT"
+}

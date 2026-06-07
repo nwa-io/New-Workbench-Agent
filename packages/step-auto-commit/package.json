@@ -1,0 +1,12 @@
+{
+  "name": "@nwa/step-auto-commit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Auto Commit workflow step (scaffold). Execution not implemented yet.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/workflow-sdk": "*"
+  },
+  "license": "MIT"
+}

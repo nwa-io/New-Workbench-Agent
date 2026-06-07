@@ -1,0 +1,12 @@
+{
+  "name": "@nwa/task-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared runtime infrastructure (services, state, helpers) used by the NWA core extension and workflow step packages.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/workflow-sdk": "*"
+  },
+  "license": "MIT"
+}

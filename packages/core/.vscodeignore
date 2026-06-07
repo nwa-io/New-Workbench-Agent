@@ -1,0 +1,36 @@
+# Source files
+src/**
+tsconfig.json
+esbuild.js
+.eslintrc.json
+
+# Build artifacts (keep bundled files and templates)
+dist/**
+!dist/extension.js
+!dist/mcp/**
+!dist/templates/**
+!dist/lib/**
+!dist/execution/**
+!dist/webview/**
+
+# Dependencies (bundled)
+node_modules/**
+!node_modules/
+!node_modules/playwright/**
+!node_modules/playwright-core/**
+
+# IDE
+.vscode-test/
+.vscode/**
+!.vscode/launch.json
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+
+# Misc
+.DS_Store
+*.vsix

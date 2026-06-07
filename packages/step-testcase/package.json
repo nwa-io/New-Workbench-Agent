@@ -1,0 +1,12 @@
+{
+  "name": "@nwa/step-testcase",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test Case workflow step (scaffold). Uses AI to generate manual test cases.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/workflow-sdk": "*"
+  },
+  "license": "MIT"
+}

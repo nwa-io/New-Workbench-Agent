@@ -1,0 +1,12 @@
+{
+  "name": "@nwa/step-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code workflow step (scaffold). Uses AI to implement the code (main step).",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/workflow-sdk": "*"
+  },
+  "license": "MIT"
+}

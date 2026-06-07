@@ -1,0 +1,9 @@
+{
+  "name": "@nwa/workflow-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure contracts and types shared by the NWA core extension and workflow step packages. No runtime vscode dependency.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "license": "MIT"
+}

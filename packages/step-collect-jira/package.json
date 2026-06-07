@@ -1,0 +1,14 @@
+{
+  "name": "@nwa/step-collect-jira",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Collect Jira workflow step: reads a Jira ticket and contributes its Task Manager detail UI.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@nwa/task-kernel": "*",
+    "@nwa/workflow-sdk": "*",
+    "playwright": "^1.59.1"
+  },
+  "license": "MIT"
+}
